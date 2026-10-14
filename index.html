@@ -298,4 +298,21 @@
             car.y = 520;
             car.scaleX = 1;
             car.scaleY = 1;
-            car.angle =
+            car.angle = 0;
+            obstacles = [];
+            particles = [];
+            score = 0;
+            isGameOver = false;
+            explosionTimer = 0;
+        }
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        loop();
+    </script>
+</body>
+</html>

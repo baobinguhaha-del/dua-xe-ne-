@@ -31,7 +31,7 @@
 </head>
 <body>
     <h2>🏎️ ĐUA XE SIÊU TỐC - STYLIZED 3D EDITION 🌟</h2>
-    <p>Né sát sạt xe khác để kích hoạt <b>Adrenaline Slow-Mo</b>. Tốc độ tối đa nâng lên mức 2.0!</p>
+    <p>Né sát sạt xe khác để nạp Adrenaline. Khi đầy 100% sẽ kích hoạt Slow-Mo và tự động về 0!</p>
     <canvas id="gameCanvas" width="600" height="650"></canvas>
 
     <script>
@@ -88,8 +88,6 @@
             else if (type === "zigzag") { w = 50; h = 90; }
 
             let isRiskyLane = (x === 85 || x === 460);
-            
-            // Tốc độ tối đa của game được nâng lên 2.0
             let speedBoost = Math.min(2.0, 1 + Math.floor(score / 100) * 0.1);
 
             obstacles.push({
@@ -139,22 +137,23 @@
                 if (tree.y > canvas.height) tree.y = -100;
             });
 
+            // Giảm dần thanh Adrenaline từ từ nếu không đạt 100%
             if (!isSlowMo && adrenaline > 0) {
                 adrenaline = Math.max(0, adrenaline - 0.05);
             }
 
+            // Khi đạt đầy 100%, kích hoạt Slow-Mo và đưa Adrenaline về 0 ngay lập tức
             if (adrenaline >= 100 && !isSlowMo) {
                 isSlowMo = true;
-                slowMoTimer = 180;
+                slowMoTimer = 180; // 3 giây
+                adrenaline = 0; // Đưa về 0 ngay khi kích hoạt
                 addFloatingText("⚡ ADRENALINE SLOW-MO KÍCH HOẠT!", canvas.width/2 - 140, 180, "#00ffcc");
             }
 
             if (isSlowMo) {
                 slowMoTimer--;
-                adrenaline = (slowMoTimer / 180) * 100;
                 if (slowMoTimer <= 0) {
                     isSlowMo = false;
-                    adrenaline = 0;
                 }
             }
 
@@ -441,7 +440,9 @@
             ctx.fillStyle = "#555";
             ctx.fillRect(25, 76, 140, 12);
             ctx.fillStyle = isSlowMo ? "#00ffcc" : "#ff3366";
-            ctx.fillRect(25, 76, (adrenaline / 100) * 140, 12);
+            // Khi đang bật Slow-Mo, thanh hiển thị đầy 100% (hoặc trống tuỳ ý bạn theo thời gian đếm ngược)
+            let adFill = isSlowMo ? (slowMoTimer / 180) * 140 : (adrenaline / 100) * 140;
+            ctx.fillRect(25, 76, adFill, 12);
             ctx.strokeStyle = "#fff";
             ctx.strokeRect(25, 76, 140, 12);
 

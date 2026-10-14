@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đua Xe Siêu Tốc - Stylized 3D Edition</title>
+    <title>Đua Xe Siêu Tốc - Tiki Tiki Edition</title>
     <style>
         body {
             margin: 0;
@@ -27,18 +27,59 @@
             box-shadow: 0 0 30px rgba(0, 229, 255, 0.4);
             background: #1e293b;
         }
+        #musicToggleBtn {
+            margin-top: 10px;
+            padding: 8px 16px;
+            background: #00e5ff;
+            color: #090d16;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
+            transition: 0.2s;
+        }
+        #musicToggleBtn:hover {
+            background: #38bdf8;
+        }
     </style>
 </head>
 <body>
-    <h2>🏎️ ĐUA XE SIÊU TỐC - STYLIZED 3D EDITION 🌟</h2>
-    <p>Né sát sạt xe khác để nạp Adrenaline. Tốc độ tối đa 2.0!</p>
+    <h2>🏎️ ĐUA XE SIÊU TỐC - TIKI TIKI EDITION ⚡</h2>
+    <p>Né sát sạt xe khác để nạp Adrenaline. Nhạc TIKI TIKI phát xuyên suốt trò chơi!</p>
     <canvas id="gameCanvas" width="600" height="650"></canvas>
+    <button id="musicToggleBtn" onclick="toggleMusic()">🔊 Bật/Tắt Nhạc Tiki Tiki</button>
+
+    <!-- Thẻ Audio trỏ đến file nhạc tikitiki.mp3 đã tải lên GitHub -->
+    <audio id="bgMusic" loop>
+        <source src="tikitiki.mp3" type="audio/mp3">
+    </audio>
 
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
+        const bgMusic = document.getElementById("bgMusic");
 
         let gameStarted = false;
+        let isMusicPlaying = false;
+
+        // Hàm bật/tắt nhạc nền
+        function toggleMusic() {
+            if (bgMusic.paused) {
+                bgMusic.volume = 0.7;
+                bgMusic.play().then(() => {
+                    isMusicPlaying = true;
+                    document.getElementById("musicToggleBtn").innerText = "🔊 Tắt Nhạc Tiki Tiki";
+                }).catch(e => {
+                    console.log("Trình duyệt chặn tự động phát nhạc:", e);
+                });
+            } else {
+                bgMusic.pause();
+                isMusicPlaying = false;
+                document.getElementById("musicToggleBtn").innerText = "🔇 Bật Nhạc Tiki Tiki";
+            }
+        }
+
         let car = { x: 275, y: 520, w: 50, h: 90, speed: 6.5, scaleX: 1, scaleY: 1, angle: 0 };
         let obstacles = [];
         let shields = [];
@@ -67,7 +108,10 @@
         const carTypes = ["supercar", "suv", "sedan", "van", "bus", "zigzag"];
 
         window.addEventListener("keydown", (e) => {
-            if (!gameStarted) gameStarted = true;
+            if (!gameStarted) {
+                gameStarted = true;
+                toggleMusic(); // Tự động bật nhạc Tiki Tiki khi bấm phím bắt đầu game lần đầu
+            }
             keys[e.key] = true;
             if (isGameOver && e.code === "Space" && explosionTimer <= 0) restartGame();
         });
@@ -75,7 +119,10 @@
         window.addEventListener("keyup", (e) => keys[e.key] = false);
 
         window.addEventListener("click", () => {
-            if (!gameStarted) gameStarted = true;
+            if (!gameStarted) {
+                gameStarted = true;
+                toggleMusic(); // Tự động bật nhạc Tiki Tiki khi click chuột bắt đầu game lần đầu
+            }
         });
 
         for (let i = 0; i < 8; i++) trees.push({ y: i * 100 });
@@ -176,17 +223,15 @@
                 if (tree.y > canvas.height) tree.y = -100;
             });
 
-            // Giảm dần Adrenaline từ từ nếu chưa đầy
             if (!isSlowMo && adrenaline > 0) {
                 adrenaline = Math.max(0, adrenaline - 0.05);
             }
 
-            // Khi đạt đầy 100%, tự động kích hoạt Slow-Mo và đưa Adrenaline về 0 ngay lập tức
             if (adrenaline >= 100 && !isSlowMo) {
                 isSlowMo = true;
                 slowMoTimer = 180; // 3 giây
                 adrenaline = 0; 
-                addFloatingText("⚡ ADRENALINE SLOW-MO!", canvas.width/2 - 110, 180, "#00ffcc");
+                addFloatingText("⚡ SLOW-MO ACTIVE!", canvas.width/2 - 110, 180, "#00ffcc");
             }
 
             if (isSlowMo) {

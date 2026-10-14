@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đua Xe Siêu Tốc - Stylized 3D Edition</title>
+    <title>Đua Xe Siêu Tốc - Tiki Tiki Edition</title>
     <style>
         body {
             margin: 0;
@@ -30,13 +30,51 @@
     </style>
 </head>
 <body>
-    <h2>🏎️ ĐUA XE SIÊU TỐC - STYLIZED 3D EDITION 🌟</h2>
-    <p>Né sát sạt xe khác để nạp Adrenaline. Khi đầy 100% sẽ kích hoạt Slow-Mo và tự động về 0!</p>
+    <h2>🏎️ ĐUA XE SIÊU TỐC - TIKI TIKI MODE ⚡</h2>
+    <p>Né sát sạt xe khác để nạp thanh <b>Tiki Tiki</b>. Kích hoạt Slow-Mo sẽ phát nhạc Tiki Tiki cực chất!</p>
     <canvas id="gameCanvas" width="600" height="650"></canvas>
 
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
+
+        // Web Audio API để phát âm thanh & giai điệu Tiki Tiki trực tiếp
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        // Phát giai điệu nhạc "Tiki Tiki" kéo dài đúng suốt thời gian Slow-Mo (3 giây)
+        function playTikiTikiMusic() {
+            initAudio();
+            if (!audioCtx) return;
+
+            // Các nốt nhạc vui nhộn lặp lại mô phỏng giai điệu "Tiki Tiki"
+            let notes = [523.25, 659.25, 783.99, 1046.50, 783.99, 659.25, 523.25, 587.33, 659.25, 783.99];
+            let noteDuration = 0.3; // mỗi nốt 0.3 giây, tổng 10 nốt = 3 giây
+
+            notes.forEach((freq, index) => {
+                let startTime = audioCtx.currentTime + (index * noteDuration);
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+
+                osc.type = "triangle"; // Âm thanh mượt mà kiểu nhạc điện tử
+                osc.frequency.setValueAtTime(freq, startTime);
+
+                // Hiệu ứng âm lượng nảy (envelope)
+                gain.gain.setValueAtTime(0.3, startTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, startTime + noteDuration - 0.05);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(startTime);
+                osc.stop(startTime + noteDuration);
+            });
+        }
 
         let car = { x: 275, y: 520, w: 50, h: 90, speed: 6.5, scaleX: 1, scaleY: 1, angle: 0 };
         let obstacles = [];
@@ -47,7 +85,7 @@
 
         let score = 0;
         let combo = 0;
-        let adrenaline = 0;
+        let tikiTiki = 0;
         let isSlowMo = false;
         let slowMoTimer = 0;
         let hasShield = false;
@@ -61,6 +99,7 @@
         const carTypes = ["supercar", "suv", "sedan", "van", "bus", "zigzag"];
 
         window.addEventListener("keydown", (e) => {
+            initAudio(); // Đảm bảo mở khóa âm thanh trình duyệt khi người chơi bấm phím
             keys[e.key] = true;
             if (isGameOver && e.code === "Space" && explosionTimer <= 0) restartGame();
         });
@@ -137,17 +176,17 @@
                 if (tree.y > canvas.height) tree.y = -100;
             });
 
-            // Giảm dần thanh Adrenaline từ từ nếu không đạt 100%
-            if (!isSlowMo && adrenaline > 0) {
-                adrenaline = Math.max(0, adrenaline - 0.05);
+            if (!isSlowMo && tikiTiki > 0) {
+                tikiTiki = Math.max(0, tikiTiki - 0.05);
             }
 
-            // Khi đạt đầy 100%, kích hoạt Slow-Mo và đưa Adrenaline về 0 ngay lập tức
-            if (adrenaline >= 100 && !isSlowMo) {
+            // Khi thanh Tiki Tiki đầy 100%, kích hoạt Slow-Mo, reset về 0 và phát nhạc Tiki Tiki từ đầu đến cuối
+            if (tikiTiki >= 100 && !isSlowMo) {
                 isSlowMo = true;
                 slowMoTimer = 180; // 3 giây
-                adrenaline = 0; // Đưa về 0 ngay khi kích hoạt
-                addFloatingText("⚡ ADRENALINE SLOW-MO KÍCH HOẠT!", canvas.width/2 - 140, 180, "#00ffcc");
+                tikiTiki = 0; 
+                playTikiTikiMusic(); // Phát nhạc Tiki Tiki
+                addFloatingText("⚡ TIKI TIKI MUSIC ACTIVE!", canvas.width/2 - 140, 180, "#00ffcc");
             }
 
             if (isSlowMo) {
@@ -190,7 +229,7 @@
                     if (distance > 50 && distance < 85) {
                         obs.nearMissed = true;
                         combo++;
-                        adrenaline = Math.min(100, adrenaline + 25);
+                        tikiTiki = Math.min(100, tikiTiki + 25);
 
                         let multiplier = combo >= 5 ? 5 : (combo >= 3 ? 3 : 2);
                         let bonus = 50 * multiplier;
@@ -440,15 +479,14 @@
             ctx.fillStyle = "#555";
             ctx.fillRect(25, 76, 140, 12);
             ctx.fillStyle = isSlowMo ? "#00ffcc" : "#ff3366";
-            // Khi đang bật Slow-Mo, thanh hiển thị đầy 100% (hoặc trống tuỳ ý bạn theo thời gian đếm ngược)
-            let adFill = isSlowMo ? (slowMoTimer / 180) * 140 : (adrenaline / 100) * 140;
-            ctx.fillRect(25, 76, adFill, 12);
+            let tikiFill = isSlowMo ? (slowMoTimer / 180) * 140 : (tikiTiki / 100) * 140;
+            ctx.fillRect(25, 76, tikiFill, 12);
             ctx.strokeStyle = "#fff";
             ctx.strokeRect(25, 76, 140, 12);
 
             ctx.fillStyle = "#fff";
             ctx.font = "9px Arial";
-            ctx.fillText(isSlowMo ? "⚡ SLOW-MO ACTIVE!" : "ADRENALINE", 30, 95);
+            ctx.fillText(isSlowMo ? "⚡ TIKI TIKI PLAYING" : "TIKI TIKI", 30, 95);
 
             if (isGameOver && explosionTimer <= 0) {
                 ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
@@ -476,7 +514,7 @@
             car.x = 275; car.y = 520;
             car.scaleX = 1; car.scaleY = 1; car.angle = 0;
             obstacles = []; shields = []; particles = []; floatingTexts = [];
-            score = 0; combo = 0; adrenaline = 0; hasShield = false;
+            score = 0; combo = 0; tikiTiki = 0; hasShield = false;
             isSlowMo = false; slowMoTimer = 0; screenShakeTimer = 0;
             isGameOver = false; explosionTimer = 0;
         }

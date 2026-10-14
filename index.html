@@ -38,33 +38,34 @@
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
-        // Web Audio API để phát âm thanh & giai điệu Tiki Tiki trực tiếp
         let audioCtx = null;
+        let gameStarted = false; // Trạng thái chờ người chơi bấm bắt đầu
 
         function initAudio() {
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
         }
 
-        // Phát giai điệu nhạc "Tiki Tiki" kéo dài đúng suốt thời gian Slow-Mo (3 giây)
+        // Phát giai điệu nhạc "Tiki Tiki" 3 giây
         function playTikiTikiMusic() {
             initAudio();
             if (!audioCtx) return;
 
-            // Các nốt nhạc vui nhộn lặp lại mô phỏng giai điệu "Tiki Tiki"
             let notes = [523.25, 659.25, 783.99, 1046.50, 783.99, 659.25, 523.25, 587.33, 659.25, 783.99];
-            let noteDuration = 0.3; // mỗi nốt 0.3 giây, tổng 10 nốt = 3 giây
+            let noteDuration = 0.3;
 
             notes.forEach((freq, index) => {
                 let startTime = audioCtx.currentTime + (index * noteDuration);
                 let osc = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
 
-                osc.type = "triangle"; // Âm thanh mượt mà kiểu nhạc điện tử
+                osc.type = "triangle";
                 osc.frequency.setValueAtTime(freq, startTime);
 
-                // Hiệu ứng âm lượng nảy (envelope)
                 gain.gain.setValueAtTime(0.3, startTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, startTime + noteDuration - 0.05);
 
@@ -99,11 +100,22 @@
         const carTypes = ["supercar", "suv", "sedan", "van", "bus", "zigzag"];
 
         window.addEventListener("keydown", (e) => {
-            initAudio(); // Đảm bảo mở khóa âm thanh trình duyệt khi người chơi bấm phím
+            initAudio(); // Mở khóa âm thanh khi bấm phím bất kỳ
+            if (!gameStarted) {
+                gameStarted = true; // Bắt đầu game khi bấm phím lần đầu
+            }
+
             keys[e.key] = true;
             if (isGameOver && e.code === "Space" && explosionTimer <= 0) restartGame();
         });
+
         window.addEventListener("keyup", (e) => keys[e.key] = false);
+
+        // Hỗ trợ click chuột để bắt đầu game trên mobile/desktop
+        window.addEventListener("click", () => {
+            initAudio();
+            if (!gameStarted) gameStarted = true;
+        });
 
         for (let i = 0; i < 8; i++) trees.push({ y: i * 100 });
 
@@ -115,7 +127,7 @@
         }
 
         function spawnObstacle() {
-            if (isGameOver) return;
+            if (!gameStarted || isGameOver) return;
             let lanes = [85, 210, 335, 460];
             let x = lanes[Math.floor(Math.random() * lanes.length)];
             let type = carTypes[Math.floor(Math.random() * carTypes.length)];
@@ -151,8 +163,8 @@
         let obstacleTimer = setInterval(spawnObstacle, 1400);
 
         function update() {
-            if (isGameOver) {
-                if (explosionTimer > 0) {
+            if (!gameStarted || isGameOver) {
+                if (isGameOver && explosionTimer > 0) {
                     explosionTimer--;
                     car.scaleX = Math.max(0.2, car.scaleX - 0.03);
                     car.scaleY = Math.max(0.2, car.scaleY - 0.03);
@@ -180,12 +192,12 @@
                 tikiTiki = Math.max(0, tikiTiki - 0.05);
             }
 
-            // Khi thanh Tiki Tiki đầy 100%, kích hoạt Slow-Mo, reset về 0 và phát nhạc Tiki Tiki từ đầu đến cuối
+            // Kích hoạt Slow-Mo khi Tiki Tiki đầy 100%, reset về 0 và phát nhạc
             if (tikiTiki >= 100 && !isSlowMo) {
                 isSlowMo = true;
                 slowMoTimer = 180; // 3 giây
                 tikiTiki = 0; 
-                playTikiTikiMusic(); // Phát nhạc Tiki Tiki
+                playTikiTikiMusic();
                 addFloatingText("⚡ TIKI TIKI MUSIC ACTIVE!", canvas.width/2 - 140, 180, "#00ffcc");
             }
 
@@ -229,7 +241,7 @@
                     if (distance > 50 && distance < 85) {
                         obs.nearMissed = true;
                         combo++;
-                        tikiTiki = Math.min(100, tikiTiki + 25);
+                        tikiTiki = Math.min(100, tikiTiki + 25); // Nạp 25% mỗi lần né sát
 
                         let multiplier = combo >= 5 ? 5 : (combo >= 3 ? 3 : 2);
                         let bonus = 50 * multiplier;
@@ -487,6 +499,22 @@
             ctx.fillStyle = "#fff";
             ctx.font = "9px Arial";
             ctx.fillText(isSlowMo ? "⚡ TIKI TIKI PLAYING" : "TIKI TIKI", 30, 95);
+
+            // Màn hình chờ bắt đầu game (Mở khóa AudioContext của trình duyệt)
+            if (!gameStarted) {
+                ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.fillStyle = "#00e5ff";
+                ctx.font = "bold 28px Arial";
+                ctx.textAlign = "center";
+                ctx.fillText("🏎️ ĐUA XE SIÊU TỐC", canvas.width / 2, 240);
+
+                ctx.fillStyle = "#fff";
+                ctx.font = "16px Arial";
+                ctx.fillText("Bấm phím bất kỳ hoặc Click để bắt đầu", canvas.width / 2, 300);
+                ctx.textAlign = "left";
+            }
 
             if (isGameOver && explosionTimer <= 0) {
                 ctx.fillStyle = "rgba(0, 0, 0, 0.85)";

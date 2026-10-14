@@ -29,7 +29,7 @@
 </head>
 <body>
     <h2>🏎️ ĐUA XE SIÊU TỐC - ULTIMATE EDITION 🌟</h2>
-    <p>Né sát (Near Miss), ăn Khiên (Shield), né Xe Buýt/Xe Lượn Sóng & Chinh phục thời tiết!</p>
+    <p>Né sát (Near Miss), ăn Khiên (Shield), né Xe Buýt/Xe Lượn Sóng. Thời tiết đổi mỗi 500 điểm!</p>
     <canvas id="gameCanvas" width="600" height="700"></canvas>
 
     <script>
@@ -45,21 +45,12 @@
         let raindrops = [];
 
         let score = 0;
-        let highScore = localStorage.getItem("carGameHighScore") || 0;
         let combo = 0;
         let hasShield = false;
         let isGameOver = false;
         let explosionTimer = 0;
         let keys = {};
         let roadY = 0;
-
-        // Nhiệm vụ ngẫu nhiên
-        let missions = [
-            { text: "Né 5 xe trên đường", target: 5, current: 0, reward: 100, completed: false },
-            { text: "Đạt mốc 150 điểm", target: 150, current: 0, reward: 150, completed: false },
-            { text: "Ăn 1 khiên bảo vệ", target: 1, current: 0, reward: 200, completed: false }
-        ];
-        let currentMissionIndex = 0;
 
         const carColors = ["#ff3366", "#ff9900", "#33cc33", "#9933ff", "#ffff00", "#00bcd4", "#ff4757", "#2ed573"];
         const carTypes = ["supercar", "suv", "sedan", "van", "bus", "zigzag"];
@@ -75,11 +66,12 @@
             raindrops.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, length: Math.random() * 20 + 10, speed: Math.random() * 5 + 8 });
         }
 
+        // Thay đổi thời tiết/đường mỗi 500 điểm
         function getRoadType() {
-            let cycle = Math.floor(score / 200) % 3;
-            if (cycle === 0) return "night";
-            if (cycle === 1) return "rain";
-            return "ice";
+            let cycle = Math.floor(score / 500) % 3;
+            if (cycle === 0) return "night"; // 0 - 499 điểm: Ban đêm
+            if (cycle === 1) return "rain";  // 500 - 999 điểm: Đường mưa
+            return "ice";                    // 1000+ điểm: Đường băng tuyết
         }
 
         function spawnObstacle() {
@@ -91,7 +83,7 @@
             let w = 50, h = 90;
             if (type === "suv") { w = 54; h = 95; }
             else if (type === "van") { w = 52; h = 100; }
-            else if (type === "bus") { w = 56; h = 140; } // Xe buýt siêu dài
+            else if (type === "bus") { w = 56; h = 140; }
             else if (type === "zigzag") { w = 50; h = 90; }
 
             let speedMultiplier = 1 + Math.floor(score / 100) * 0.35;
@@ -108,7 +100,6 @@
                 scored: false
             });
 
-            // Ngẫu nhiên sinh vật phẩm khiên
             if (Math.random() < 0.25 && shields.length === 0) {
                 let shieldX = lanes[Math.floor(Math.random() * lanes.length)];
                 shields.push({ x: shieldX + 10, y: -100, w: 30, h: 30, speed: 4 * speedMultiplier });
@@ -144,7 +135,6 @@
             if (keys["ArrowLeft"] && car.x > 55) car.x -= moveSpeed;
             if (keys["ArrowRight"] && car.x < canvas.width - 55 - car.w) car.x += moveSpeed;
 
-            // Xử lý hạt mưa
             if (roadType === "rain") {
                 raindrops.forEach(drop => {
                     drop.y += drop.speed;
@@ -153,7 +143,6 @@
                 });
             }
 
-            // Xử lý vật phẩm khiên
             for (let i = shields.length - 1; i >= 0; i--) {
                 let s = shields[i];
                 s.y += s.speed;
@@ -164,24 +153,20 @@
                     hasShield = true;
                     shields.splice(i, 1);
                     addFloatingText("🛡️ KHIÊN KÍCH HOẠT!", car.x, car.y - 20, "#00ffcc");
-                    updateMissionProgress(2); // Nhiệm vụ ăn khiên
                 } else if (s.y > canvas.height) {
                     shields.splice(i, 1);
                 }
             }
 
-            // Cập nhật chướng ngại vật
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 let obs = obstacles[i];
                 obs.y += obs.speed;
 
-                // Xe zigzag di chuyển qua lại trái phải
                 if (obs.type === "zigzag") {
                     obs.x += obs.zigzagDir;
                     if (obs.x < 55 || obs.x > 545 - obs.w) obs.zigzagDir *= -1;
                 }
 
-                // Kiểm tra Near Miss (Né sát xe khác)
                 if (!obs.nearMissed && obs.y > car.y - 40 && obs.y < car.y + car.h) {
                     let distance = Math.abs((car.x + car.w/2) - (obs.x + obs.w/2));
                     if (distance > 50 && distance < 85) {
@@ -193,7 +178,6 @@
                     }
                 }
 
-                // Kiểm tra va chạm
                 if (
                     car.x < obs.x + obs.w - 5 &&
                     car.x + car.w - 5 > obs.x &&
@@ -201,7 +185,7 @@
                     car.y + car.h - 5 > obs.y
                 ) {
                     if (hasShield) {
-                        hasShield = false; // Chặn một lần va chạm
+                        hasShield = false;
                         obstacles.splice(i, 1);
                         addFloatingText("🛡️ KHIÊN ĐÃ ĐỠ ĐÒN!", car.x, car.y - 30, "#00e5ff");
                     } else {
@@ -209,12 +193,9 @@
                     }
                 }
 
-                // Vượt qua xe thành công
                 if (obs.y > canvas.height && !obs.scored) {
                     obs.scored = true;
                     score += 10;
-                    updateMissionProgress(0); // Nhiệm vụ né xe
-                    updateMissionProgress(1); // Nhiệm vụ đạt điểm
                 }
 
                 if (obs.y > canvas.height) {
@@ -222,7 +203,6 @@
                 }
             }
 
-            // Cập nhật hiệu ứng chữ nổi
             floatingTexts.forEach(ft => { ft.y -= 1.5; ft.alpha -= 0.02; });
             floatingTexts = floatingTexts.filter(ft => ft.alpha > 0);
         }
@@ -231,31 +211,9 @@
             floatingTexts.push({ text: text, x: x, y: y, color: color, alpha: 1 });
         }
 
-        function updateMissionProgress(type) {
-            let m = missions[currentMissionIndex];
-            if (m.completed) return;
-
-            if (type === 0) m.current++;
-            if (type === 1) m.current = score;
-            if (type === 2) m.current++;
-
-            if (m.current >= m.target) {
-                m.completed = true;
-                score += m.reward;
-                addFloatingText(`🎯 HOÀN THÀNH NHIỆM VỤ! +${m.reward}đ`, canvas.width/2 - 100, 150, "#00ffcc");
-                setTimeout(() => {
-                    currentMissionIndex = (currentMissionIndex + 1) % missions.length;
-                }, 2000);
-            }
-        }
-
         function triggerGameOver() {
             isGameOver = true;
             explosionTimer = 60;
-            if (score > highScore) {
-                highScore = score;
-                localStorage.setItem("carGameHighScore", highScore);
-            }
             for (let i = 0; i < 45; i++) {
                 particles.push({
                     x: car.x + car.w / 2, y: car.y + car.h / 2,
@@ -320,22 +278,18 @@
         function draw() {
             let roadType = getRoadType();
 
-            // Màu nền theo môi trường thời tiết
             if (roadType === "night") ctx.fillStyle = "#090d16";
             else if (roadType === "rain") ctx.fillStyle = "#1e293b";
-            else ctx.fillStyle = "#e2e8f0"; // Đường băng tuyết sáng
+            else ctx.fillStyle = "#e2e8f0";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Lòng đường chính
             ctx.fillStyle = roadType === "ice" ? "#cbd5e1" : (roadType === "night" ? "#111827" : "#334155");
             ctx.fillRect(50, 0, 500, canvas.height);
 
-            // Vạch lề đường
             ctx.fillStyle = roadType === "ice" ? "#94a3b8" : "#fff";
             ctx.fillRect(50, 0, 5, canvas.height);
             ctx.fillRect(545, 0, 5, canvas.height);
 
-            // Vạch phân làn
             ctx.strokeStyle = roadType === "ice" ? "#64748b" : "#fff";
             ctx.lineWidth = 4;
             ctx.setLineDash([25, 15]);
@@ -350,7 +304,6 @@
 
             trees.forEach(tree => { drawTree(5, tree.y); drawTree(canvas.width - 35, tree.y); });
 
-            // Hiệu ứng mưa
             if (roadType === "rain") {
                 ctx.strokeStyle = "rgba(255,255,255,0.6)";
                 ctx.lineWidth = 1.5;
@@ -362,7 +315,6 @@
                 });
             }
 
-            // Vẽ xe người chơi (có hiệu ứng vòng bảo vệ Khiên)
             drawCar(car.x, car.y, car.w, car.h, "#00e5ff", "supercar", car.scaleX, car.scaleY, car.angle);
             if (hasShield) {
                 ctx.strokeStyle = "#00ffcc";
@@ -372,7 +324,6 @@
                 ctx.stroke();
             }
 
-            // Vật phẩm khiên
             shields.forEach(s => {
                 ctx.fillStyle = "#00ffcc";
                 ctx.beginPath();
@@ -383,7 +334,6 @@
                 ctx.fillText("🛡️", s.x + 3, s.y + 21);
             });
 
-            // Mảnh vỡ nổ
             particles.forEach(p => {
                 ctx.fillStyle = p.color;
                 ctx.globalAlpha = Math.max(0, p.alpha);
@@ -391,10 +341,8 @@
                 ctx.globalAlpha = 1;
             });
 
-            // Xe chướng ngại vật
             obstacles.forEach(obs => { drawCar(obs.x, obs.y, obs.w, obs.h, obs.color, obs.type); });
 
-            // Hiệu ứng chữ bay Near Miss / Combo
             floatingTexts.forEach(ft => {
                 ctx.fillStyle = ft.color;
                 ctx.globalAlpha = ft.alpha;
@@ -403,34 +351,19 @@
                 ctx.globalAlpha = 1;
             });
 
-            // Bảng giao diện điểm số & Nhiệm vụ góc trái/phải
+            // Giao diện điểm số
             ctx.fillStyle = "rgba(0,0,0,0.6)";
-            ctx.fillRect(15, 15, 230, 95);
+            ctx.fillRect(15, 15, 210, 70);
             ctx.strokeStyle = "#00e5ff";
-            ctx.strokeRect(15, 15, 230, 95);
+            ctx.strokeRect(15, 15, 210, 70);
 
+            let envName = roadType === "night" ? "Ban Đêm 🌙" : (roadType === "rain" ? "Trời Mưa 🌧️" : "Đường Băng ❄️");
             ctx.fillStyle = "#fff";
             ctx.font = "bold 18px Arial";
             ctx.fillText("Điểm: " + score, 25, 42);
-            ctx.font = "14px Arial";
-            ctx.fillStyle = "#facc15";
-            ctx.fillText("Kỉ lục: " + highScore, 25, 66);
             ctx.fillStyle = "#38bdf8";
-            ctx.fillText(`Môi trường: ${roadType.toUpperCase()}`, 25, 90);
-
-            // Hiển thị nhiệm vụ hiện tại
-            let m = missions[currentMissionIndex];
-            ctx.fillStyle = "rgba(0,0,0,0.6)";
-            ctx.fillRect(canvas.width - 235, 15, 220, 65);
-            ctx.strokeStyle = "#a855f7";
-            ctx.strokeRect(canvas.width - 235, 15, 220, 65);
-
-            ctx.fillStyle = "#c084fc";
-            ctx.font = "bold 13px Arial";
-            ctx.fillText("🎯 NHIỆM VỤ:", canvas.width - 225, 35);
-            ctx.fillStyle = "#fff";
-            ctx.font = "12px Arial";
-            ctx.fillText(m.text + ` (${Math.min(m.current, m.target)}/${m.target})`, canvas.width - 225, 58);
+            ctx.font = "13px Arial";
+            ctx.fillText(`Môi trường: ${envName}`, 25, 68);
 
             if (isGameOver && explosionTimer <= 0) {
                 ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
@@ -439,16 +372,15 @@
                 ctx.fillStyle = "#ff3366";
                 ctx.font = "bold 36px Arial";
                 ctx.textAlign = "center";
-                ctx.fillText("GAME OVER", canvas.width / 2, 240);
+                ctx.fillText("GAME OVER", canvas.width / 2, 260);
 
                 ctx.fillStyle = "#fff";
                 ctx.font = "22px Arial";
-                ctx.fillText("Tổng điểm: " + score, canvas.width / 2, 290);
-                ctx.fillText("Điểm kỉ lục: " + highScore, canvas.width / 2, 330);
+                ctx.fillText("Tổng điểm: " + score, canvas.width / 2, 310);
                 
                 ctx.fillStyle = "#00e5ff";
                 ctx.font = "16px Arial";
-                ctx.fillText("Nhấn SPACE để chơi lại", canvas.width / 2, 390);
+                ctx.fillText("Nhấn SPACE để chơi lại", canvas.width / 2, 360);
                 ctx.textAlign = "left";
             }
         }

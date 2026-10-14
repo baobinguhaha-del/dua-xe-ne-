@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đua Xe Siêu Tốc - Tiki Tiki Edition</title>
+    <title>Đua Xe Siêu Tốc - Stylized 3D Edition</title>
     <style>
         body {
             margin: 0;
@@ -30,33 +30,15 @@
     </style>
 </head>
 <body>
-    <h2>🏎️ ĐUA XE SIÊU TỐC - TIKI TIKI & DYNAMIC ROAD ⚡</h2>
-    <p>Né sát xe nạp <b>Adrenaline</b>. Nhạc TIKI TIKI phát ngay từ lúc bắt đầu cùng các sự kiện đường đua!</p>
+    <h2>🏎️ ĐUA XE SIÊU TỐC - STYLIZED 3D EDITION 🌟</h2>
+    <p>Né sát sạt xe khác để nạp Adrenaline. Tốc độ tối đa 2.0!</p>
     <canvas id="gameCanvas" width="600" height="650"></canvas>
-
-    <!-- Thẻ Audio phát nhạc nền Tiki Tiki (Bạn có thể thay link src bằng file MP3 thực tế của bài hát) -->
-    <audio id="bgMusic" loop>
-        <source src="https://www.learningcontainer.com/wp-content/uploads/2020/02/Kalimba.mp3" type="audio/mp3">
-    </audio>
 
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
-        const bgMusic = document.getElementById("bgMusic");
 
         let gameStarted = false;
-
-        // Bật nhạc nền khi người chơi bấm phím hoặc click chuột bắt đầu game
-        function startMusic() {
-            if (!gameStarted) {
-                gameStarted = true;
-                bgMusic.volume = 0.5; // Âm lượng 50%
-                bgMusic.play().catch(error => {
-                    console.log("Trình duyệt chặn autoplay, chờ tương tác thêm.");
-                });
-            }
-        }
-
         let car = { x: 275, y: 520, w: 50, h: 90, speed: 6.5, scaleX: 1, scaleY: 1, angle: 0 };
         let obstacles = [];
         let shields = [];
@@ -78,14 +60,14 @@
         let roadY = 0;
 
         let roadEventTimer = 0;
-        let currentRoadEvent = "normal";
+        let currentRoadEvent = "normal"; // normal, split, construction, narrow
         let roadEventDuration = 0;
 
         const carColors = ["#ff3366", "#ff9900", "#33cc33", "#9933ff", "#ffff00", "#00bcd4", "#ff4757", "#2ed573"];
         const carTypes = ["supercar", "suv", "sedan", "van", "bus", "zigzag"];
 
         window.addEventListener("keydown", (e) => {
-            startMusic();
+            if (!gameStarted) gameStarted = true;
             keys[e.key] = true;
             if (isGameOver && e.code === "Space" && explosionTimer <= 0) restartGame();
         });
@@ -93,7 +75,7 @@
         window.addEventListener("keyup", (e) => keys[e.key] = false);
 
         window.addEventListener("click", () => {
-            startMusic();
+            if (!gameStarted) gameStarted = true;
         });
 
         for (let i = 0; i < 8; i++) trees.push({ y: i * 100 });
@@ -194,15 +176,17 @@
                 if (tree.y > canvas.height) tree.y = -100;
             });
 
+            // Giảm dần Adrenaline từ từ nếu chưa đầy
             if (!isSlowMo && adrenaline > 0) {
                 adrenaline = Math.max(0, adrenaline - 0.05);
             }
 
+            // Khi đạt đầy 100%, tự động kích hoạt Slow-Mo và đưa Adrenaline về 0 ngay lập tức
             if (adrenaline >= 100 && !isSlowMo) {
                 isSlowMo = true;
-                slowMoTimer = 180;
+                slowMoTimer = 180; // 3 giây
                 adrenaline = 0; 
-                addFloatingText("⚡ SLOW-MO ACTIVE!", canvas.width/2 - 100, 180, "#00ffcc");
+                addFloatingText("⚡ ADRENALINE SLOW-MO!", canvas.width/2 - 110, 180, "#00ffcc");
             }
 
             if (isSlowMo) {
@@ -550,7 +534,7 @@
                 ctx.fillStyle = "#00e5ff";
                 ctx.font = "bold 28px Arial";
                 ctx.textAlign = "center";
-                ctx.fillText("🏎️ TIKI TIKI RACING", canvas.width / 2, 240);
+                ctx.fillText("🏎️ ĐUA XE SIÊU TỐC", canvas.width / 2, 240);
 
                 ctx.fillStyle = "#fff";
                 ctx.font = "16px Arial";

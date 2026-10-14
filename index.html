@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đua Xe Siêu Tốc - Tiki Tiki Edition</title>
+    <title>Đua Xe Siêu Tốc - Dynamic & Stylized 3D</title>
     <style>
         body {
             margin: 0;
@@ -30,8 +30,8 @@
     </style>
 </head>
 <body>
-    <h2>🏎️ ĐUA XE SIÊU TỐC - TIKI TIKI MODE ⚡</h2>
-    <p>Né sát sạt xe khác để nạp thanh <b>Tiki Tiki</b>. Kích hoạt Slow-Mo sẽ phát nhạc Tiki Tiki cực chất!</p>
+    <h2>🏎️ ĐUA XE SIÊU TỐC - DYNAMIC ROAD EDITION ⚡</h2>
+    <p>Né sát xe nạp <b>Adrenaline</b>. Cẩn thận các công trường, nhánh đường rẽ & đường hẹp bất ngờ!</p>
     <canvas id="gameCanvas" width="600" height="650"></canvas>
 
     <script>
@@ -39,7 +39,7 @@
         const ctx = canvas.getContext("2d");
 
         let audioCtx = null;
-        let gameStarted = false; // Trạng thái chờ người chơi bấm bắt đầu
+        let gameStarted = false;
 
         function initAudio() {
             if (!audioCtx) {
@@ -50,8 +50,31 @@
             }
         }
 
-        // Phát giai điệu nhạc "Tiki Tiki" 3 giây
-        function playTikiTikiMusic() {
+        // Âm thanh khởi động động cơ lúc bắt đầu game
+        function playStartEngineSound() {
+            initAudio();
+            if (!audioCtx) return;
+
+            let startTime = audioCtx.currentTime;
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+
+            osc.type = "sawtooth";
+            osc.frequency.setValueAtTime(100, startTime);
+            osc.frequency.exponentialRampToValueAtTime(300, startTime + 1.0);
+
+            gain.gain.setValueAtTime(0.2, startTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, startTime + 1.2);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start(startTime);
+            osc.stop(startTime + 1.2);
+        }
+
+        // Nhạc Adrenaline khi thanh đầy 100%
+        function playAdrenalineMusic() {
             initAudio();
             if (!audioCtx) return;
 
@@ -80,13 +103,14 @@
         let car = { x: 275, y: 520, w: 50, h: 90, speed: 6.5, scaleX: 1, scaleY: 1, angle: 0 };
         let obstacles = [];
         let shields = [];
+        let roadBlockages = []; // Công trường, chướng ngại vật cố định
         let trees = [];
         let particles = [];
         let floatingTexts = [];
 
         let score = 0;
         let combo = 0;
-        let tikiTiki = 0;
+        let adrenaline = 0;
         let isSlowMo = false;
         let slowMoTimer = 0;
         let hasShield = false;
@@ -96,13 +120,19 @@
         let keys = {};
         let roadY = 0;
 
+        // Quản lý sự kiện Dynamic Road (Đường biến đổi)
+        let roadEventTimer = 0;
+        let currentRoadEvent = "normal"; // normal, split (tách nhánh), construction (công trường), narrow (đường hẹp)
+        let roadEventDuration = 0;
+
         const carColors = ["#ff3366", "#ff9900", "#33cc33", "#9933ff", "#ffff00", "#00bcd4", "#ff4757", "#2ed573"];
         const carTypes = ["supercar", "suv", "sedan", "van", "bus", "zigzag"];
 
         window.addEventListener("keydown", (e) => {
-            initAudio(); // Mở khóa âm thanh khi bấm phím bất kỳ
+            initAudio();
             if (!gameStarted) {
-                gameStarted = true; // Bắt đầu game khi bấm phím lần đầu
+                gameStarted = true;
+                playStartEngineSound();
             }
 
             keys[e.key] = true;
@@ -111,10 +141,12 @@
 
         window.addEventListener("keyup", (e) => keys[e.key] = false);
 
-        // Hỗ trợ click chuột để bắt đầu game trên mobile/desktop
         window.addEventListener("click", () => {
             initAudio();
-            if (!gameStarted) gameStarted = true;
+            if (!gameStarted) {
+                gameStarted = true;
+                playStartEngineSound();
+            }
         });
 
         for (let i = 0; i < 8; i++) trees.push({ y: i * 100 });
@@ -126,9 +158,37 @@
             return "ice";
         }
 
+        // Kích hoạt các sự kiện đường đua Dynamic Road (Công trường, Nhánh rẽ, Đường hẹp)
+        function updateDynamicRoad() {
+            roadEventTimer++;
+            if (roadEventTimer > 350 && currentRoadEvent === "normal") {
+                roadEventTimer = 0;
+                let events = ["split", "construction", "narrow"];
+                currentRoadEvent = events[Math.floor(Math.random() * events.length)];
+                roadEventDuration = 300; // Thời gian diễn ra sự kiện
+
+                if (currentRoadEvent === "construction") {
+                    // Đặt công trường chắn ngang một vài làn đường
+                    roadBlockages.push({ x: 210, y: -100, w: 110, h: 40 });
+                }
+            }
+
+            if (currentRoadEvent !== "normal") {
+                roadEventDuration--;
+                if (roadEventDuration <= 0) {
+                    currentRoadEvent = "normal";
+                    roadBlockages = [];
+                }
+            }
+        }
+
         function spawnObstacle() {
             if (!gameStarted || isGameOver) return;
             let lanes = [85, 210, 335, 460];
+            if (currentRoadEvent === "narrow") {
+                lanes = [210, 335]; // Khi gặp đường hẹp chỉ sinh xe ở 2 làn giữa
+            }
+
             let x = lanes[Math.floor(Math.random() * lanes.length)];
             let type = carTypes[Math.floor(Math.random() * carTypes.length)];
 
@@ -174,6 +234,7 @@
                 return;
             }
 
+            updateDynamicRoad();
             if (screenShakeTimer > 0) screenShakeTimer--;
 
             let roadType = getRoadType();
@@ -188,17 +249,16 @@
                 if (tree.y > canvas.height) tree.y = -100;
             });
 
-            if (!isSlowMo && tikiTiki > 0) {
-                tikiTiki = Math.max(0, tikiTiki - 0.05);
+            if (!isSlowMo && adrenaline > 0) {
+                adrenaline = Math.max(0, adrenaline - 0.05);
             }
 
-            // Kích hoạt Slow-Mo khi Tiki Tiki đầy 100%, reset về 0 và phát nhạc
-            if (tikiTiki >= 100 && !isSlowMo) {
+            if (adrenaline >= 100 && !isSlowMo) {
                 isSlowMo = true;
                 slowMoTimer = 180; // 3 giây
-                tikiTiki = 0; 
-                playTikiTikiMusic();
-                addFloatingText("⚡ TIKI TIKI MUSIC ACTIVE!", canvas.width/2 - 140, 180, "#00ffcc");
+                adrenaline = 0; 
+                playAdrenalineMusic();
+                addFloatingText("⚡ ADRENALINE MUSIC ACTIVE!", canvas.width/2 - 140, 180, "#00ffcc");
             }
 
             if (isSlowMo) {
@@ -212,6 +272,7 @@
             if (keys["ArrowLeft"] && car.x > 55) car.x -= moveSpeed;
             if (keys["ArrowRight"] && car.x < canvas.width - 55 - car.w) car.x += moveSpeed;
 
+            // Xử lý vật phẩm khiên
             for (let i = shields.length - 1; i >= 0; i--) {
                 let s = shields[i];
                 s.y += s.speed * timeMultiplier;
@@ -227,6 +288,20 @@
                 }
             }
 
+            // Xử lý chướng ngại vật cố định (Công trường)
+            for (let i = roadBlockages.length - 1; i >= 0; i--) {
+                let rb = roadBlockages[i];
+                rb.y += roadSpeed;
+                if (
+                    car.x < rb.x + rb.w && car.x + car.w > rb.x &&
+                    car.y < rb.y + rb.h && car.y + car.h > rb.y
+                ) {
+                    handleCrash();
+                }
+                if (rb.y > canvas.height) roadBlockages.splice(i, 1);
+            }
+
+            // Xử lý xe chướng ngại vật
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 let obs = obstacles[i];
                 obs.y += obs.speed * timeMultiplier;
@@ -241,7 +316,7 @@
                     if (distance > 50 && distance < 85) {
                         obs.nearMissed = true;
                         combo++;
-                        tikiTiki = Math.min(100, tikiTiki + 25); // Nạp 25% mỗi lần né sát
+                        adrenaline = Math.min(100, adrenaline + 25);
 
                         let multiplier = combo >= 5 ? 5 : (combo >= 3 ? 3 : 2);
                         let bonus = 50 * multiplier;
@@ -420,6 +495,16 @@
             ctx.fillStyle = roadType === "ice" ? "#cbd5e1" : (roadType === "night" ? "#111827" : "#334155");
             ctx.fillRect(50, 0, 500, canvas.height);
 
+            // Hiệu ứng cảnh báo Dynamic Road (Đường hẹp / Tách nhánh)
+            if (currentRoadEvent === "narrow") {
+                ctx.fillStyle = "rgba(255, 51, 102, 0.2)";
+                ctx.fillRect(50, 0, 150, canvas.height);
+                ctx.fillRect(400, 0, 150, canvas.height);
+            } else if (currentRoadEvent === "split") {
+                ctx.fillStyle = "rgba(0, 229, 255, 0.15)";
+                ctx.fillRect(210, 0, 180, canvas.height);
+            }
+
             ctx.fillStyle = roadType === "ice" ? "#94a3b8" : "#fff";
             ctx.fillRect(50, 0, 5, canvas.height);
             ctx.fillRect(545, 0, 5, canvas.height);
@@ -438,6 +523,15 @@
             ctx.setLineDash([]);
 
             trees.forEach(tree => { drawTree(5, tree.y); drawTree(canvas.width - 35, tree.y); });
+
+            // Vẽ vật cản công trường
+            roadBlockages.forEach(rb => {
+                ctx.fillStyle = "#f59e0b";
+                ctx.fillRect(rb.x, rb.y, rb.w, rb.h);
+                ctx.fillStyle = "#000";
+                ctx.font = "bold 13px Arial";
+                ctx.fillText("🚧 CÔNG TRƯỜNG", rb.x + 3, rb.y + 25);
+            });
 
             drawStylized3DCar(car.x, car.y, car.w, car.h, "#00e5ff", "supercar", car.scaleX, car.scaleY, car.angle);
             if (hasShield) {
@@ -491,16 +585,27 @@
             ctx.fillStyle = "#555";
             ctx.fillRect(25, 76, 140, 12);
             ctx.fillStyle = isSlowMo ? "#00ffcc" : "#ff3366";
-            let tikiFill = isSlowMo ? (slowMoTimer / 180) * 140 : (tikiTiki / 100) * 140;
-            ctx.fillRect(25, 76, tikiFill, 12);
+            let adFill = isSlowMo ? (slowMoTimer / 180) * 140 : (adrenaline / 100) * 140;
+            ctx.fillRect(25, 76, adFill, 12);
             ctx.strokeStyle = "#fff";
             ctx.strokeRect(25, 76, 140, 12);
 
             ctx.fillStyle = "#fff";
             ctx.font = "9px Arial";
-            ctx.fillText(isSlowMo ? "⚡ TIKI TIKI PLAYING" : "TIKI TIKI", 30, 95);
+            ctx.fillText(isSlowMo ? "⚡ ADRENALINE PLAYING" : "ADRENALINE", 30, 95);
 
-            // Màn hình chờ bắt đầu game (Mở khóa AudioContext của trình duyệt)
+            // Bảng thông báo sự kiện Dynamic Road
+            if (currentRoadEvent !== "normal") {
+                ctx.fillStyle = "rgba(255, 51, 102, 0.85)";
+                ctx.fillRect(canvas.width / 2 - 120, 15, 240, 32);
+                ctx.fillStyle = "#fff";
+                ctx.font = "bold 13px Arial";
+                ctx.textAlign = "center";
+                ctx.fillText(`⚠️ SỰ KIỆN: ${currentRoadEvent.toUpperCase()} ⚠️`, canvas.width / 2, 35);
+                ctx.textAlign = "left";
+            }
+
+            // Màn hình chờ bắt đầu game
             if (!gameStarted) {
                 ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -541,9 +646,10 @@
         function restartGame() {
             car.x = 275; car.y = 520;
             car.scaleX = 1; car.scaleY = 1; car.angle = 0;
-            obstacles = []; shields = []; particles = []; floatingTexts = [];
-            score = 0; combo = 0; tikiTiki = 0; hasShield = false;
+            obstacles = []; shields = []; roadBlockages = []; particles = []; floatingTexts = [];
+            score = 0; combo = 0; adrenaline = 0; hasShield = false;
             isSlowMo = false; slowMoTimer = 0; screenShakeTimer = 0;
+            currentRoadEvent = "normal";
             isGameOver = false; explosionTimer = 0;
         }
 

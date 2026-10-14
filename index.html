@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đua Xe Né Chướng Ngại Vật - Đồ Họa Nâng Cao</title>
+    <title>Đua Xe Siêu Tốc - Né Xe Toàn Cầu</title>
     <style>
         body {
             margin: 0;
@@ -26,8 +26,8 @@
     </style>
 </head>
 <body>
-    <h2>🏎️ ĐUA XE NÉ CHƯỚNG NGOẠI VẬT (NÂNG CẤP) 🔥</h2>
-    <p>Dùng phím <b>Trái / Phải</b> né xe & đá. Tốc độ sẽ tăng dần sau mỗi 100 điểm!</p>
+    <h2>🏎️ ĐUA XE SIÊU TỐC - DÀN XE TOÀN CẦU 🌍</h2>
+    <p>Né các loại xe đa dạng (Siêu xe, SUV, Sedan, Van). Tốc độ tăng dần theo điểm!</p>
     <canvas id="gameCanvas" width="450" height="650"></canvas>
 
     <script>
@@ -37,14 +37,15 @@
         let car = { x: 195, y: 520, w: 50, h: 90, speed: 7, scaleX: 1, scaleY: 1, angle: 0 };
         let obstacles = [];
         let trees = [];
-        let particles = []; // Hiệu ứng nổ
+        let particles = [];
         let score = 0;
         let isGameOver = false;
         let explosionTimer = 0;
         let keys = {};
         let roadY = 0;
 
-        const carColors = ["#ff3366", "#ff9900", "#33cc33", "#9933ff", "#ffff00", "#00bcd4"];
+        const carColors = ["#ff3366", "#ff9900", "#33cc33", "#9933ff", "#ffff00", "#00bcd4", "#ff4757", "#2ed573"];
+        const carTypes = ["supercar", "suv", "sedan", "van"];
 
         window.addEventListener("keydown", (e) => {
             keys[e.key] = true;
@@ -60,31 +61,35 @@
             if (isGameOver) return;
             let lanes = [65, 195, 325];
             let x = lanes[Math.floor(Math.random() * lanes.length)];
-            let isRock = Math.random() < 0.3;
+            let type = carTypes[Math.floor(Math.random() * carTypes.length)];
 
-            // Tính hệ số tăng tốc độ theo điểm (mỗi 100 điểm tăng tốc độ chung)
+            // Kích thước tùy theo từng dòng xe trên thế giới
+            let w = 50, h = 90;
+            if (type === "suv") { w = 54; h = 95; }
+            else if (type === "van") { w = 52; h = 100; }
+            else if (type === "supercar") { w = 50; h = 85; }
+
             let speedMultiplier = 1 + Math.floor(score / 100) * 0.4;
 
             obstacles.push({
                 x: x,
-                y: -120,
-                w: 50,
-                h: isRock ? 50 : 90,
-                speed: (Math.random() * 2 + 3) * speedMultiplier,
-                type: isRock ? "rock" : "car",
+                y: -130,
+                w: w,
+                h: h,
+                speed: (Math.random() * 2.5 + 3.5) * speedMultiplier,
+                type: type,
                 color: carColors[Math.floor(Math.random() * carColors.length)]
             });
         }
 
-        // Tần suất xuất hiện vật cản nhanh hơn theo điểm
-        let spawnInterval = 1600;
+        // Tăng tần suất xuất hiện xe nhiều hơn
+        let spawnInterval = 1200; 
         let obstacleTimer = setInterval(spawnObstacle, spawnInterval);
 
         function update() {
             if (isGameOver) {
                 if (explosionTimer > 0) {
                     explosionTimer--;
-                    // Hiệu ứng xe bóp méo, xoay và thu nhỏ khi nổ
                     car.scaleX = Math.max(0.2, car.scaleX - 0.03);
                     car.scaleY = Math.max(0.2, car.scaleY - 0.03);
                     car.angle += 0.1;
@@ -97,7 +102,6 @@
                 return;
             }
 
-            // Tốc độ di chuyển nền phụ thuộc vào điểm số (mỗi 100 điểm tăng tốc độ)
             let currentSpeedBoost = 1 + Math.floor(score / 100) * 0.4;
             let roadSpeed = 6 * currentSpeedBoost;
 
@@ -115,11 +119,12 @@
                 let obs = obstacles[i];
                 obs.y += obs.speed;
 
-                // Kiểm tra va chạm
+                // Kiểm tra va chạm chính xác theo hộp giới hạn
                 if (
                     car.x < obs.x + obs.w - 5 &&
                     car.x + car.w - 5 > obs.x &&
                     car.y < obs.y + obs.h - 5 &&
+                    car.y + car.height - 5 > obs.y && // Fix logic h
                     car.y + car.h - 5 > obs.y
                 ) {
                     triggerGameOver();
@@ -134,15 +139,14 @@
 
         function triggerGameOver() {
             isGameOver = true;
-            explosionTimer = 60; // Thời gian hiệu ứng bóp méo & nổ
+            explosionTimer = 60;
 
-            // Tạo các mảnh vỡ hiệu ứng nổ
-            for (let i = 0; i < 40; i++) {
+            for (let i = 0; i < 45; i++) {
                 particles.push({
                     x: car.x + car.w / 2,
                     y: car.y + car.h / 2,
-                    vx: (Math.random() - 0.5) * 10,
-                    vy: (Math.random() - 0.5) * 10,
+                    vx: (Math.random() - 0.5) * 12,
+                    vy: (Math.random() - 0.5) * 12,
                     size: Math.random() * 6 + 2,
                     color: Math.random() > 0.5 ? "#ff3300" : "#ffcc00",
                     alpha: 1
@@ -150,54 +154,61 @@
             }
         }
 
-        function drawCar(x, y, w, h, color, scaleX = 1, scaleY = 1, angle = 0) {
+        // Hàm vẽ từng loại xe chi tiết khác nhau
+        function drawSpecificCar(x, y, w, h, color, type, scaleX = 1, scaleY = 1, angle = 0) {
             ctx.save();
             ctx.translate(x + w/2, y + h/2);
             ctx.rotate(angle);
             ctx.scale(scaleX, scaleY);
             ctx.translate(-(x + w/2), -(y + h/2));
 
-            // Thân xe
+            // Thân xe chung
             ctx.fillStyle = color;
             ctx.beginPath();
-            ctx.roundRect(x, y, w, h, 10);
+            ctx.roundRect(x, y, w, h, type === "van" ? 6 : 12);
             ctx.fill();
             ctx.strokeStyle = "#000";
             ctx.lineWidth = 2;
             ctx.stroke();
 
-            // Kính chắn gió
-            ctx.fillStyle = "#111";
-            ctx.fillRect(x + 8, y + 15, w - 16, 18);
+            if (type === "supercar") {
+                // Siêu xe: Cánh gió thể thao phía sau & kính hẹp hầm hố
+                ctx.fillStyle = "#111";
+                ctx.fillRect(x + 6, y + 22, w - 12, 14); // Kính trước
+                ctx.fillRect(x + 8, y + h - 22, w - 16, 10); // Kính sau
+                // Cánh gió sau
+                ctx.fillStyle = "#000";
+                ctx.fillRect(x - 2, y + h - 8, w + 4, 5);
+            } else if (type === "suv") {
+                // SUV: Kính to bản, gầm cao bề thế
+                ctx.fillStyle = "#111";
+                ctx.fillRect(x + 6, y + 18, w - 12, 26);
+                ctx.fillRect(x + 8, y + h - 30, w - 16, 18);
+            } else if (type === "van") {
+                // Van: Xe hình hộp chở khách/hàng hóa rộng
+                ctx.fillStyle = "#111";
+                ctx.fillRect(x + 5, y + 12, w - 10, 32);
+                ctx.fillRect(x + 6, y + h - 38, w - 12, 22);
+            } else {
+                // Sedan tiêu chuẩn
+                ctx.fillStyle = "#111";
+                ctx.fillRect(x + 7, y + 18, w - 14, 20);
+                ctx.fillRect(x + 8, y + h - 28, w - 16, 14);
+            }
 
             // Bánh xe
-            ctx.fillStyle = "#000";
-            ctx.fillRect(x - 4, y + 10, 5, 18);
-            ctx.fillRect(x + w, y + 10, 5, 18);
-            ctx.fillRect(x - 4, y + h - 28, 5, 18);
-            ctx.fillRect(x + w, y + h - 28, 5, 18);
+            ctx.fillStyle = "#111";
+            ctx.fillRect(x - 5, y + 12, 6, 20);
+            ctx.fillRect(x + w - 1, y + 12, 6, 20);
+            ctx.fillRect(x - 5, y + h - 30, 6, 20);
+            ctx.fillRect(x + w - 1, y + h - 30, 6, 20);
 
-            // Đèn xe
+            // Đèn pha phía trước
             ctx.fillStyle = "#fff700";
-            ctx.fillRect(x + 5, y + 2, 8, 4);
-            ctx.fillRect(x + w - 13, y + 2, 8, 4);
+            ctx.fillRect(x + 4, y + 2, 8, 4);
+            ctx.fillRect(x + w - 12, y + 2, 8, 4);
 
             ctx.restore();
-        }
-
-        function drawRock(x, y, w, h) {
-            ctx.fillStyle = "#888";
-            ctx.beginPath();
-            ctx.moveTo(x + 10, y);
-            ctx.lineTo(x + w, y + 15);
-            ctx.lineTo(x + w - 5, y + h);
-            ctx.lineTo(x + 5, y + h - 5);
-            ctx.lineTo(x, y + 20);
-            ctx.closePath();
-            ctx.fill();
-            ctx.strokeStyle = "#444";
-            ctx.lineWidth = 3;
-            ctx.stroke();
         }
 
         function drawTree(x, y) {
@@ -239,8 +250,8 @@
                 drawTree(canvas.width - 35, tree.y);
             });
 
-            // Vẽ xe người chơi (có áp dụng tỷ lệ co giãn bóp méo & xoay khi nổ)
-            drawCar(car.x, car.y, car.w, car.h, "#00e5ff", car.scaleX, car.scaleY, car.angle);
+            // Vẽ xe của người chơi
+            drawSpecificCar(car.x, car.y, car.w, car.h, "#00e5ff", "supercar", car.scaleX, car.scaleY, car.angle);
 
             // Vẽ các mảnh vỡ hiệu ứng nổ
             particles.forEach(p => {
@@ -252,21 +263,18 @@
                 ctx.globalAlpha = 1;
             });
 
+            // Vẽ danh sách xe chướng ngại vật phong phú trên thế giới
             obstacles.forEach(obs => {
-                if (obs.type === "car") {
-                    drawCar(obs.x, obs.y, obs.w, obs.h, obs.color);
-                } else {
-                    drawRock(obs.x, obs.y, obs.w, obs.h);
-                }
+                drawSpecificCar(obs.x, obs.y, obs.w, obs.h, obs.color, obs.type);
             });
 
-            // Hiển thị điểm số và cấp độ tốc độ hiện tại
+            // Giao diện điểm số
             ctx.fillStyle = "#fff";
             ctx.font = "bold 20px Arial";
             ctx.fillText("Điểm: " + score, 45, 35);
             ctx.font = "14px Arial";
             ctx.fillStyle = "#ffcc00";
-            ctx.fillText("Cấp độ tốc độ: x" + currentSpeedBoost.toFixed(1), 45, 60);
+            ctx.fillText("Tốc độ: x" + currentSpeedBoost.toFixed(1), 45, 60);
 
             if (isGameOver && explosionTimer <= 0) {
                 ctx.fillStyle = "rgba(0, 0, 0, 0.85)";

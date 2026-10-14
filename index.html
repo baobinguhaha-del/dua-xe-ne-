@@ -30,18 +30,17 @@
     </style>
 </head>
 <body>
-    <h2>🏎️ ĐUA XE SIÊU TỐC - ADRENALINE & DYNAMIC ROAD ⚡</h2>
-    <p>Né sát sạt xe khác để nạp đầy <b>Thanh Adrenaline</b> (Slow Motion). Né tránh các vật cản công trường!</p>
+    <h2>🏎️ ĐUA XE SIÊU TỐC - ADRENALINE MODE ⚡</h2>
+    <p>Né sát sạt xe khác để nạp đầy <b>Thanh Adrenaline</b> (Slow Motion). Tốc độ tối đa giới hạn ở mức 1.2!</p>
     <canvas id="gameCanvas" width="600" height="650"></canvas>
 
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
-        let car = { x: 275, y: 520, w: 50, h: 90, speed: 7.5, scaleX: 1, scaleY: 1, angle: 0 };
+        let car = { x: 275, y: 520, w: 50, h: 90, speed: 6.5, scaleX: 1, scaleY: 1, angle: 0 };
         let obstacles = [];
         let shields = [];
-        let roadBlockages = [];
         let trees = [];
         let particles = [];
         let floatingTexts = [];
@@ -56,10 +55,6 @@
         let explosionTimer = 0;
         let keys = {};
         let roadY = 0;
-
-        let roadEventTimer = 0;
-        let currentRoadEvent = "normal";
-        let roadEventDuration = 0;
 
         const carColors = ["#ff3366", "#ff9900", "#33cc33", "#9933ff", "#ffff00", "#00bcd4", "#ff4757", "#2ed573"];
         const carTypes = ["supercar", "suv", "sedan", "van", "bus", "zigzag"];
@@ -79,35 +74,9 @@
             return "ice";
         }
 
-        function updateDynamicRoad() {
-            roadEventTimer++;
-            if (roadEventTimer > 400 && currentRoadEvent === "normal") {
-                roadEventTimer = 0;
-                let events = ["split", "construction", "narrow"];
-                currentRoadEvent = events[Math.floor(Math.random() * events.length)];
-                roadEventDuration = 350;
-
-                if (currentRoadEvent === "construction") {
-                    roadBlockages.push({ x: 210, y: -100, w: 110, h: 40, type: "cone" });
-                }
-            }
-
-            if (currentRoadEvent !== "normal") {
-                roadEventDuration--;
-                if (roadEventDuration <= 0) {
-                    currentRoadEvent = "normal";
-                    roadBlockages = [];
-                }
-            }
-        }
-
         function spawnObstacle() {
             if (isGameOver) return;
             let lanes = [85, 210, 335, 460];
-            if (currentRoadEvent === "narrow") {
-                lanes = [210, 335];
-            }
-
             let x = lanes[Math.floor(Math.random() * lanes.length)];
             let type = carTypes[Math.floor(Math.random() * carTypes.length)];
 
@@ -118,28 +87,30 @@
             else if (type === "zigzag") { w = 50; h = 90; }
 
             let isRiskyLane = (x === 85 || x === 460);
-            let speedMultiplier = (1 + Math.floor(score / 100) * 0.35) * (isRiskyLane ? 1.2 : 1);
+            
+            // Giới hạn hệ số tốc độ tối đa của game là 1.2
+            let speedBoost = Math.min(1.2, 1 + Math.floor(score / 100) * 0.1);
 
             obstacles.push({
                 x: x,
                 y: -150,
                 w: w,
                 h: h,
-                speed: (Math.random() * 2 + 3.5) * speedMultiplier,
+                speed: (Math.random() * 1.0 + 2.5) * speedBoost,
                 type: type,
                 color: carColors[Math.floor(Math.random() * carColors.length)],
-                zigzagDir: Math.random() > 0.5 ? 2 : -2,
+                zigzagDir: Math.random() > 0.5 ? 1.2 : -1.2,
                 isRisky: isRiskyLane,
                 scored: false
             });
 
             if (Math.random() < 0.2 && shields.length === 0) {
                 let shieldX = lanes[Math.floor(Math.random() * lanes.length)];
-                shields.push({ x: shieldX + 10, y: -100, w: 30, h: 30, speed: 4 * speedMultiplier });
+                shields.push({ x: shieldX + 10, y: -100, w: 30, h: 30, speed: 2.8 * speedBoost });
             }
         }
 
-        let obstacleTimer = setInterval(spawnObstacle, 1000);
+        let obstacleTimer = setInterval(spawnObstacle, 1400);
 
         function update() {
             if (isGameOver) {
@@ -153,12 +124,11 @@
                 return;
             }
 
-            updateDynamicRoad();
-
             let roadType = getRoadType();
             let timeMultiplier = isSlowMo ? 0.4 : 1;
-            let currentSpeedBoost = (1 + Math.floor(score / 100) * 0.35) * timeMultiplier;
-            let roadSpeed = 6 * currentSpeedBoost;
+            
+            let speedBoost = Math.min(1.2, 1 + Math.floor(score / 100) * 0.1);
+            let roadSpeed = 4 * speedBoost * timeMultiplier;
 
             roadY = (roadY + roadSpeed) % 40;
             trees.forEach(tree => {
@@ -185,7 +155,7 @@
                 }
             }
 
-            let moveSpeed = (roadType === "ice" ? 4 : car.speed) * timeMultiplier;
+            let moveSpeed = (roadType === "ice" ? 3.0 : car.speed) * timeMultiplier;
             if (keys["ArrowLeft"] && car.x > 55) car.x -= moveSpeed;
             if (keys["ArrowRight"] && car.x < canvas.width - 55 - car.w) car.x += moveSpeed;
 
@@ -202,18 +172,6 @@
                 } else if (s.y > canvas.height) {
                     shields.splice(i, 1);
                 }
-            }
-
-            for (let i = roadBlockages.length - 1; i >= 0; i--) {
-                let rb = roadBlockages[i];
-                rb.y += roadSpeed;
-                if (
-                    car.x < rb.x + rb.w && car.x + car.w > rb.x &&
-                    car.y < rb.y + rb.h && car.y + car.h > rb.y
-                ) {
-                    handleCrash();
-                }
-                if (rb.y > canvas.height) roadBlockages.splice(i, 1);
             }
 
             for (let i = obstacles.length - 1; i >= 0; i--) {
@@ -358,12 +316,6 @@
             ctx.fillStyle = roadType === "ice" ? "#cbd5e1" : (roadType === "night" ? "#111827" : "#334155");
             ctx.fillRect(50, 0, 500, canvas.height);
 
-            if (currentRoadEvent === "narrow") {
-                ctx.fillStyle = "rgba(255, 51, 102, 0.2)";
-                ctx.fillRect(50, 0, 150, canvas.height);
-                ctx.fillRect(400, 0, 150, canvas.height);
-            }
-
             ctx.fillStyle = roadType === "ice" ? "#94a3b8" : "#fff";
             ctx.fillRect(50, 0, 5, canvas.height);
             ctx.fillRect(545, 0, 5, canvas.height);
@@ -371,7 +323,8 @@
             ctx.strokeStyle = roadType === "ice" ? "#64748b" : "#fff";
             ctx.lineWidth = 4;
             ctx.setLineDash([25, 15]);
-            let currentSpeedBoost = 1 + Math.floor(score / 100) * 0.35;
+            let speedBoost = Math.min(1.2, 1 + Math.floor(score / 100) * 0.1);
+            let roadSpeed = 4 * speedBoost;
             ctx.lineDashOffset = -roadY;
             ctx.beginPath();
             ctx.moveTo(175, 0); ctx.lineTo(175, canvas.height);
@@ -381,14 +334,6 @@
             ctx.setLineDash([]);
 
             trees.forEach(tree => { drawTree(5, tree.y); drawTree(canvas.width - 35, tree.y); });
-
-            roadBlockages.forEach(rb => {
-                ctx.fillStyle = "#f59e0b";
-                ctx.fillRect(rb.x, rb.y, rb.w, rb.h);
-                ctx.fillStyle = "#000";
-                ctx.font = "bold 14px Arial";
-                ctx.fillText("🚧 CÔNG TRƯỜNG", rb.x + 5, rb.y + 25);
-            });
 
             drawCar(car.x, car.y, car.w, car.h, "#00e5ff", "supercar", car.scaleX, car.scaleY, car.angle);
             if (hasShield) {
@@ -450,16 +395,6 @@
             ctx.font = "9px Arial";
             ctx.fillText(isSlowMo ? "⚡ SLOW-MO ACTIVE!" : "ADRENALINE", 30, 95);
 
-            if (currentRoadEvent !== "normal") {
-                ctx.fillStyle = "rgba(255, 51, 102, 0.8)";
-                ctx.fillRect(canvas.width / 2 - 110, 15, 220, 32);
-                ctx.fillStyle = "#fff";
-                ctx.font = "bold 13px Arial";
-                ctx.textAlign = "center";
-                ctx.fillText(`⚠️ SỰ KIỆN: ${currentRoadEvent.toUpperCase()} ⚠️`, canvas.width / 2, 35);
-                ctx.textAlign = "left";
-            }
-
             if (isGameOver && explosionTimer <= 0) {
                 ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -483,9 +418,9 @@
         function restartGame() {
             car.x = 275; car.y = 520;
             car.scaleX = 1; car.scaleY = 1; car.angle = 0;
-            obstacles = []; shields = []; roadBlockages = []; particles = []; floatingTexts = [];
+            obstacles = []; shields = []; particles = []; floatingTexts = [];
             score = 0; combo = 0; adrenaline = 0; hasShield = false;
-            isSlowMo = false; slowMoTimer = 0; currentRoadEvent = "normal";
+            isSlowMo = false; slowMoTimer = 0;
             isGameOver = false; explosionTimer = 0;
         }
 

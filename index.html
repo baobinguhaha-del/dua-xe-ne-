@@ -46,11 +46,10 @@
 </head>
 <body>
     <h2>🏎️ ĐUA XE SIÊU TỐC - TIKI TIKI EDITION ⚡</h2>
-    <p>Né sát sạt xe khác để nạp Adrenaline. Nhạc tự động lặp lại liên tục!</p>
+    <p>Né sát sạt xe khác để nạp Adrenaline. Nhạc tự động reset khi chơi lại!</p>
     <canvas id="gameCanvas" width="600" height="650"></canvas>
     <button id="musicToggleBtn" onclick="toggleMusic()">🔊 Bật/Tắt Nhạc Tiki Tiki</button>
 
-    <!-- Thêm thuộc tính loop để âm thanh tự động lặp lại khi kết thúc -->
     <audio id="bgMusic" loop>
         <source src="tikitiki.mp3" type="audio/mp3">
     </audio>
@@ -60,7 +59,6 @@
         const ctx = canvas.getContext("2d");
         const bgMusic = document.getElementById("bgMusic");
 
-        // Đảm bảo dự phòng tự lặp lại bằng JS nếu trình duyệt chặn thuộc tính loop của thẻ audio
         bgMusic.addEventListener('ended', function() {
             this.currentTime = 0;
             this.play();
@@ -69,7 +67,7 @@
         let gameStarted = false;
         let isMusicPlaying = false;
 
-        function toggleMusic() {
+        function startMusic() {
             if (bgMusic.paused) {
                 bgMusic.volume = 0.7;
                 bgMusic.play().then(() => {
@@ -78,6 +76,12 @@
                 }).catch(e => {
                     console.log("Trình duyệt chặn tự động phát nhạc:", e);
                 });
+            }
+        }
+
+        function toggleMusic() {
+            if (bgMusic.paused) {
+                startMusic();
             } else {
                 bgMusic.pause();
                 isMusicPlaying = false;
@@ -115,7 +119,7 @@
         window.addEventListener("keydown", (e) => {
             if (!gameStarted) {
                 gameStarted = true;
-                toggleMusic();
+                startMusic();
             }
             keys[e.key] = true;
             if (isGameOver && e.code === "Space" && explosionTimer <= 0) restartGame();
@@ -126,7 +130,7 @@
         window.addEventListener("click", () => {
             if (!gameStarted) {
                 gameStarted = true;
-                toggleMusic();
+                startMusic();
             }
         });
 
@@ -615,6 +619,10 @@
         }
 
         function restartGame() {
+            // Tự động tua nhạc về giây 0 và phát lại từ đầu khi chơi lại
+            bgMusic.currentTime = 0;
+            bgMusic.play().catch(e => console.log("Lỗi phát nhạc khi restart:", e));
+
             car.x = 275; car.y = 520;
             car.scaleX = 1; car.scaleY = 1; car.angle = 0;
             obstacles = []; shields = []; roadBlockages = []; particles = []; floatingTexts = [];

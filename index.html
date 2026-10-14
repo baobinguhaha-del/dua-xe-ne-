@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đua Xe Né Chướng Ngại Vật Nâng Cao</title>
+    <title>Đua Xe Né Chướng Ngại Vật - Đồ Họa Nâng Cao</title>
     <style>
         body {
             margin: 0;
@@ -26,20 +26,21 @@
     </style>
 </head>
 <body>
-    <h2>🏎️ ĐUA XE NÉ CHƯỚNG NGOẠI VẬT (NÂNG CAO) 🌲</h2>
-    <p>Dùng phím mũi tên <b>Trái / Phải</b> để né xe và đá! Xe cản có thể di chuyển nhanh chậm ngẫu nhiên.</p>
+    <h2>🏎️ ĐUA XE NÉ CHƯỚNG NGOẠI VẬT (NÂNG CẤP) 🔥</h2>
+    <p>Dùng phím <b>Trái / Phải</b> né xe & đá. Tốc độ sẽ tăng dần sau mỗi 100 điểm!</p>
     <canvas id="gameCanvas" width="450" height="650"></canvas>
 
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
-        // Xe người chơi
-        let car = { x: 195, y: 520, w: 50, h: 90, speed: 7 };
+        let car = { x: 195, y: 520, w: 50, h: 90, speed: 7, scaleX: 1, scaleY: 1, angle: 0 };
         let obstacles = [];
         let trees = [];
+        let particles = []; // Hiệu ứng nổ
         let score = 0;
         let isGameOver = false;
+        let explosionTimer = 0;
         let keys = {};
         let roadY = 0;
 
@@ -47,11 +48,10 @@
 
         window.addEventListener("keydown", (e) => {
             keys[e.key] = true;
-            if (isGameOver && e.code === "Space") restartGame();
+            if (isGameOver && e.code === "Space" && explosionTimer <= 0) restartGame();
         });
         window.addEventListener("keyup", (e) => keys[e.key] = false);
 
-        // Khởi tạo hàng cây bên đường
         for (let i = 0; i < 8; i++) {
             trees.push({ y: i * 100 });
         }
@@ -60,40 +60,59 @@
             if (isGameOver) return;
             let lanes = [65, 195, 325];
             let x = lanes[Math.floor(Math.random() * lanes.length)];
-            let isRock = Math.random() < 0.3; // 30% là đá, 70% là xe
+            let isRock = Math.random() < 0.3;
+
+            // Tính hệ số tăng tốc độ theo điểm (mỗi 100 điểm tăng tốc độ chung)
+            let speedMultiplier = 1 + Math.floor(score / 100) * 0.4;
 
             obstacles.push({
                 x: x,
                 y: -120,
                 w: 50,
                 h: isRock ? 50 : 90,
-                speed: Math.random() * 3 + 3, // Tốc độ ngẫu nhiên từ 3 đến 6
+                speed: (Math.random() * 2 + 3) * speedMultiplier,
                 type: isRock ? "rock" : "car",
                 color: carColors[Math.floor(Math.random() * carColors.length)]
             });
         }
 
-        setInterval(spawnObstacle, 1600);
+        // Tần suất xuất hiện vật cản nhanh hơn theo điểm
+        let spawnInterval = 1600;
+        let obstacleTimer = setInterval(spawnObstacle, spawnInterval);
 
         function update() {
-            if (isGameOver) return;
+            if (isGameOver) {
+                if (explosionTimer > 0) {
+                    explosionTimer--;
+                    // Hiệu ứng xe bóp méo, xoay và thu nhỏ khi nổ
+                    car.scaleX = Math.max(0.2, car.scaleX - 0.03);
+                    car.scaleY = Math.max(0.2, car.scaleY - 0.03);
+                    car.angle += 0.1;
+                }
+                particles.forEach(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.alpha -= 0.02;
+                });
+                return;
+            }
 
-            roadY = (roadY + 6) % 40;
+            // Tốc độ di chuyển nền phụ thuộc vào điểm số (mỗi 100 điểm tăng tốc độ)
+            let currentSpeedBoost = 1 + Math.floor(score / 100) * 0.4;
+            let roadSpeed = 6 * currentSpeedBoost;
 
-            // Di chuyển cây hai bên đường theo tốc độ mặt đường
+            roadY = (roadY + roadSpeed) % 40;
+
             trees.forEach(tree => {
-                tree.y += 6;
+                tree.y += roadSpeed;
                 if (tree.y > canvas.height) tree.y = -100;
             });
 
-            // Điều khiển xe người chơi
             if (keys["ArrowLeft"] && car.x > 35) car.x -= car.speed;
             if (keys["ArrowRight"] && car.x < canvas.width - 85) car.x += car.speed;
 
-            // Cập nhật chướng ngại vật
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 let obs = obstacles[i];
-                // Xe chướng ngại vật di chuyển với tốc độ riêng của nó (có thể chạy nhanh hoặc chậm)
                 obs.y += obs.speed;
 
                 // Kiểm tra va chạm
@@ -103,10 +122,9 @@
                     car.y < obs.y + obs.h - 5 &&
                     car.y + car.h - 5 > obs.y
                 ) {
-                    isGameOver = true;
+                    triggerGameOver();
                 }
 
-                // Xóa vật cản khi đi qua màn hình và cộng điểm
                 if (obs.y > canvas.height) {
                     obstacles.splice(i, 1);
                     score += 10;
@@ -114,7 +132,31 @@
             }
         }
 
-        function drawCar(x, y, w, h, color) {
+        function triggerGameOver() {
+            isGameOver = true;
+            explosionTimer = 60; // Thời gian hiệu ứng bóp méo & nổ
+
+            // Tạo các mảnh vỡ hiệu ứng nổ
+            for (let i = 0; i < 40; i++) {
+                particles.push({
+                    x: car.x + car.w / 2,
+                    y: car.y + car.h / 2,
+                    vx: (Math.random() - 0.5) * 10,
+                    vy: (Math.random() - 0.5) * 10,
+                    size: Math.random() * 6 + 2,
+                    color: Math.random() > 0.5 ? "#ff3300" : "#ffcc00",
+                    alpha: 1
+                });
+            }
+        }
+
+        function drawCar(x, y, w, h, color, scaleX = 1, scaleY = 1, angle = 0) {
+            ctx.save();
+            ctx.translate(x + w/2, y + h/2);
+            ctx.rotate(angle);
+            ctx.scale(scaleX, scaleY);
+            ctx.translate(-(x + w/2), -(y + h/2));
+
             // Thân xe
             ctx.fillStyle = color;
             ctx.beginPath();
@@ -139,6 +181,8 @@
             ctx.fillStyle = "#fff700";
             ctx.fillRect(x + 5, y + 2, 8, 4);
             ctx.fillRect(x + w - 13, y + 2, 8, 4);
+
+            ctx.restore();
         }
 
         function drawRock(x, y, w, h) {
@@ -157,10 +201,8 @@
         }
 
         function drawTree(x, y) {
-            // Thân cây
             ctx.fillStyle = "#8B5A2B";
             ctx.fillRect(x + 10, y + 30, 10, 25);
-            // Tán lá
             ctx.fillStyle = "#228B22";
             ctx.beginPath();
             ctx.arc(x + 15, y + 25, 18, 0, Math.PI * 2);
@@ -171,23 +213,20 @@
         }
 
         function draw() {
-            // Nền cỏ hai bên đường
             ctx.fillStyle = "#2d6a4f";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Lòng đường chính màu xám tối
             ctx.fillStyle = "#333";
             ctx.fillRect(35, 0, canvas.width - 70, canvas.height);
 
-            // Vạch lề đường trắng đỏ
             ctx.fillStyle = "#fff";
             ctx.fillRect(35, 0, 5, canvas.height);
             ctx.fillRect(canvas.width - 40, 0, 5, canvas.height);
 
-            // Vạch phân làn đứt đoạn
             ctx.strokeStyle = "#fff";
             ctx.lineWidth = 4;
             ctx.setLineDash([25, 15]);
+            let currentSpeedBoost = 1 + Math.floor(score / 100) * 0.4;
             ctx.lineDashOffset = -roadY;
             ctx.beginPath();
             ctx.moveTo(170, 0); ctx.lineTo(170, canvas.height);
@@ -195,16 +234,24 @@
             ctx.stroke();
             ctx.setLineDash([]);
 
-            // Vẽ hàng cây hai bên vỉa hè
             trees.forEach(tree => {
-                drawTree(5, tree.y);                     // Hàng cây bên trái
-                drawTree(canvas.width - 35, tree.y);     // Hàng cây bên phải
+                drawTree(5, tree.y);
+                drawTree(canvas.width - 35, tree.y);
             });
 
-            // Vẽ xe của người chơi
-            drawCar(car.x, car.y, car.w, car.h, "#00e5ff");
+            // Vẽ xe người chơi (có áp dụng tỷ lệ co giãn bóp méo & xoay khi nổ)
+            drawCar(car.x, car.y, car.w, car.h, "#00e5ff", car.scaleX, car.scaleY, car.angle);
 
-            // Vẽ các chướng ngại vật (xe hoặc đá)
+            // Vẽ các mảnh vỡ hiệu ứng nổ
+            particles.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = Math.max(0, p.alpha);
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            });
+
             obstacles.forEach(obs => {
                 if (obs.type === "car") {
                     drawCar(obs.x, obs.y, obs.w, obs.h, obs.color);
@@ -213,37 +260,45 @@
                 }
             });
 
-            // Hiển thị điểm số
+            // Hiển thị điểm số và cấp độ tốc độ hiện tại
             ctx.fillStyle = "#fff";
             ctx.font = "bold 20px Arial";
             ctx.fillText("Điểm: " + score, 45, 35);
+            ctx.font = "14px Arial";
+            ctx.fillStyle = "#ffcc00";
+            ctx.fillText("Cấp độ tốc độ: x" + currentSpeedBoost.toFixed(1), 45, 60);
 
-            // Màn hình khi thua cuộc
-            if (isGameOver) {
+            if (isGameOver && explosionTimer <= 0) {
                 ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
                 ctx.fillStyle = "#ff3366";
                 ctx.font = "bold 32px Arial";
                 ctx.textAlign = "center";
-                ctx.fillText("GAME OVER", canvas.width / 2, 260);
+                ctx.fillText("GAME OVER", canvas.width / 2, 240);
 
                 ctx.fillStyle = "#fff";
                 ctx.font = "20px Arial";
-                ctx.fillText("Tổng điểm: " + score, canvas.width / 2, 300);
+                ctx.fillText("Tổng điểm: " + score, canvas.width / 2, 290);
                 
                 ctx.fillStyle = "#00e5ff";
                 ctx.font = "16px Arial";
-                ctx.fillText("Nhấn SPACE để chơi lại", canvas.width / 2, 350);
+                ctx.fillText("Nhấn SPACE để chơi lại", canvas.width / 2, 340);
                 ctx.textAlign = "left";
             }
         }
 
         function restartGame() {
             car.x = 195;
+            car.y = 520;
+            car.scaleX = 1;
+            car.scaleY = 1;
+            car.angle = 0;
             obstacles = [];
+            particles = [];
             score = 0;
             isGameOver = false;
+            explosionTimer = 0;
         }
 
         function loop() {

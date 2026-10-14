@@ -3,104 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đua Xe Siêu Tốc - Né Chướng Ngại Vật</title>
+    <title>Game Đua Xe Né Chướng Ngại Vật</title>
     <style>
         body {
             margin: 0;
-            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            background: #222;
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: Arial, sans-serif;
             color: white;
             overflow: hidden;
         }
-        h2 {
-            margin-bottom: 5px;
-            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
-        }
-        p {
-            margin-top: 0;
-            margin-bottom: 15px;
-            color: #aaa;
-            font-size: 14px;
-        }
         canvas {
-            background: #1e1e1e;
-            border: 4px solid #00d2ff;
-            border-radius: 8px;
-            box-shadow: 0 0 25px rgba(0, 210, 255, 0.4);
+            background: #333;
+            border: 4px solid #fff;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
         }
     </style>
 </head>
 <body>
-    <h2>🚀 Đua Xe Siêu Tốc 🚀</h2>
-    <p>Sử dụng phím mũi tên <b>Trái</b> và <b>Phải</b> để lái xe né vật cản!</p>
-    <canvas id="gameCanvas" width="450" height="650"></canvas>
+    <div>
+        <h2>Đua Xe Né Chướng Ngại Vật</h2>
+        <p>Sử dụng phím mũi tên <b>Trái</b> và <b>Phải</b> để điều khiển xe.</p>
+        <canvas id="gameCanvas" width="400" height="600"></canvas>
+    </div>
 
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
-        let car = { x: 195, y: 520, width: 60, height: 100, speed: 6 };
+        let car = { x: 175, y: 500, width: 50, height: 80, speed: 5 };
         let obstacles = [];
         let score = 0;
         let isGameOver = false;
         let keys = {};
-        let roadOffset = 0;
 
         window.addEventListener("keydown", (e) => keys[e.key] = true);
         window.addEventListener("keyup", (e) => keys[e.key] = false);
 
-        // Danh sách màu sắc cho xe chướng ngại vật
-        const carColors = ["#ff3838", "#ff9f1a", "#2ed573", "#9b59b6", "#00d2d3"];
-
         function spawnObstacle() {
-            let lanes = [65, 195, 325]; // Tọa độ 3 làn đường chính xác
+            let lanes = [50, 150, 250];
             let x = lanes[Math.floor(Math.random() * lanes.length)];
-            let type = Math.random() > 0.4 ? "car" : "rock"; // 60% xe đủ màu, 40% cục đá
-            let color = carColors[Math.floor(Math.random() * carColors.length)];
-
-            obstacles.push({
-                x: x,
-                y: -120,
-                width: 60,
-                height: type === "car" ? 100 : 60,
-                speed: 4.5,
-                type: type,
-                color: color
-            });
+            obstacles.push({ x: x, y: -100, width: 50, height: 80, speed: 4 });
         }
 
-        setInterval(spawnObstacle, 1800);
+        setInterval(spawnObstacle, 2000);
 
         function update() {
             if (isGameOver) return;
 
-            // Hiệu ứng cuộn mặt đường
-            roadOffset = (roadOffset + 4) % 40;
-
-            // Điều khiển xe người chơi
+            // Di chuyển xe người chơi
             if (keys["ArrowLeft"] && car.x > 30) car.x -= car.speed;
-            if (keys["ArrowRight"] && car.x < canvas.width - 90) car.x += car.speed;
+            if (keys["ArrowRight"] && car.x < canvas.width - 80) car.x += car.speed;
 
             // Cập nhật chướng ngại vật
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 obstacles[i].y += obstacles[i].speed;
 
-                // Kiểm tra va chạm (Bounding Box)
+                // Kiểm tra va chạm
                 if (
-                    car.x < obstacles[i].x + obstacles[i].width - 5 &&
-                    car.x + car.width - 5 > obstacles[i].x &&
-                    car.y < obstacles[i].y + obstacles[i].height - 5 &&
-                    car.y + car.height - 5 > obstacles[i].y
+                    car.x < obstacles[i].x + obstacles[i].width &&
+                    car.x + car.width > obstacles[i].x &&
+                    car.y < obstacles[i].y + obstacles[i].height &&
+                    car.y + car.height > obstacles[i].y
                 ) {
                     isGameOver = true;
                 }
 
-                // Xóa khi ra khỏi màn hình & cộng điểm
+                // Xóa vật cản khi ra ngoài màn hình và tăng điểm
                 if (obstacles[i].y > canvas.height) {
                     obstacles.splice(i, 1);
                     score += 10;
@@ -108,129 +80,42 @@
             }
         }
 
-        // Hàm vẽ xe chi tiết (dùng cho cả xe người chơi và xe chướng ngại vật)
-        function drawDetailedCar(x, y, w, h, bodyColor) {
-            // Thân xe chính
-            ctx.fillStyle = bodyColor;
-            ctx.beginPath();
-            ctx.roundRect(x, y, w, h, 12);
-            ctx.fill();
-            ctx.strokeStyle = "#000";
-            ctx.lineWidth = 2;
-            ctx.stroke();
-
-            // Kính chắn gió trước
-            ctx.fillStyle = "#111";
-            ctx.beginPath();
-            ctx.roundRect(x + 10, y + 20, w - 20, 20, 4);
-            ctx.fill();
-
-            // Kính sau
-            ctx.beginPath();
-            ctx.roundRect(x + 12, y + h - 30, w - 24, 15, 3);
-            ctx.fill();
-
-            // Bánh xe
-            ctx.fillStyle = "#111";
-            ctx.fillRect(x - 6, y + 15, 6, 22); // Bánh trước trái
-            ctx.fillRect(x + w, y + 15, 6, 22); // Bánh trước phải
-            ctx.fillRect(x - 6, y + h - 35, 6, 22); // Bánh sau trái
-            ctx.fillRect(x + w, y + h - 35, 6, 22); // Bánh sau phải
-
-            // Đèn pha
-            ctx.fillStyle = "#ffff00";
-            ctx.fillRect(x + 6, y + 2, 10, 4);
-            ctx.fillRect(x + w - 16, y + 2, 10, 4);
-        }
-
-        // Hàm vẽ cục đá chướng ngại vật gồ ghề
-        function drawRock(x, y, w, h) {
-            ctx.fillStyle = "#7f8c8d";
-            ctx.beginPath();
-            ctx.moveTo(x + w/2, y);
-            ctx.lineTo(x + w, y + h/3);
-            ctx.lineTo(x + w - 5, y + h);
-            ctx.lineTo(x + 5, y + h - 5);
-            ctx.lineTo(x, y + h/3);
-            ctx.closePath();
-            ctx.fill();
-            ctx.strokeStyle = "#34495e";
-            ctx.lineWidth = 3;
-            ctx.stroke();
-
-            // Chi tiết vết nứt trên đá
-            ctx.strokeStyle = "#95a5a6";
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(x + w/2, y);
-            ctx.lineTo(x + w/2 + 5, y + h/2);
-            ctx.lineTo(x + w/3, y + h);
-            ctx.stroke();
-        }
-
         function draw() {
-            // Nền đường đua màu tối sang trọng
-            ctx.fillStyle = "#2c3e50";
+            // Xóa màn hình
+            ctx.fillStyle = "#444";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Viền lề đường sọc đỏ trắng
-            ctx.fillStyle = "#e74c3c";
-            ctx.fillRect(0, 0, 15, canvas.height);
-            ctx.fillRect(canvas.width - 15, 0, 15, canvas.height);
-
-            // Vạch đứt khúc chuyển động giữa các làn đường
-            ctx.strokeStyle = "#f1c40f";
-            ctx.lineWidth = 4;
-            ctx.setLineDash([30, 20]);
-            ctx.lineDashOffset = -roadOffset;
-            
+            // Vẽ làn đường
+            ctx.strokeStyle = "#fff";
+            ctx.setLineDash([20, 20]);
             ctx.beginPath();
-            ctx.moveTo(150, 0); ctx.lineTo(150, canvas.height);
-            ctx.moveTo(300, 0); ctx.lineTo(300, canvas.height);
+            ctx.moveTo(133, 0); ctx.lineTo(133, canvas.height);
+            ctx.moveTo(266, 0); ctx.lineTo(266, canvas.height);
             ctx.stroke();
-            ctx.setLineDash([]); // Reset line dash
 
-            // Vẽ xe của người chơi (Màu xanh dương neon nổi bật)
-            drawDetailedCar(car.x, car.y, car.width, car.height, "#00d2ff");
+            // Vẽ xe người chơi
+            ctx.fillStyle = "#ff2e2e";
+            ctx.fillRect(car.x, car.y, car.width, car.height);
 
-            // Vẽ chướng ngại vật (Xe đủ màu hoặc cục đá)
+            // Vẽ chướng ngại vật
+            ctx.fillStyle = "#2ecc71";
             obstacles.forEach(obs => {
-                if (obs.type === "car") {
-                    drawDetailedCar(obs.x, obs.y, obs.width, obs.height, obs.color);
-                } else {
-                    drawRock(obs.x, obs.y, obs.width, obs.height);
-                }
+                ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
             });
 
-            // Bảng hiển thị điểm số phong cách hiện đại
-            ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-            ctx.fillRect(15, 15, 140, 45);
-            ctx.strokeStyle = "#00d2ff";
-            ctx.lineWidth = 2;
-            ctx.strokeRect(15, 15, 140, 45);
-
+            // Hiển thị điểm số
             ctx.fillStyle = "#fff";
-            ctx.font = "bold 20px Arial";
-            ctx.fillText("Điểm: " + score, 30, 45);
+            ctx.font = "20px Arial";
+            ctx.fillText("Điểm: " + score, 20, 30);
 
-            // Màn hình Game Over
             if (isGameOver) {
-                ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+                ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                ctx.fillStyle = "#ff4757";
-                ctx.font = "bold 36px Arial";
-                ctx.textAlign = "center";
-                ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 30);
-
                 ctx.fillStyle = "#fff";
-                ctx.font = "20px Arial";
-                ctx.fillText("Điểm đạt được: " + score, canvas.width / 2, canvas.height / 2 + 10);
-
-                ctx.fillStyle = "#2ed573";
+                ctx.font = "30px Arial";
+                ctx.fillText("GAME OVER", 110, 280);
                 ctx.font = "16px Arial";
-                ctx.fillText("Nhấn phím F5 để chơi lại", canvas.width / 2, canvas.height / 2 + 50);
-                ctx.textAlign = "left"; // Reset align
+                ctx.fillText("Nhấn F5 để chơi lại", 130, 320);
             }
         }
 

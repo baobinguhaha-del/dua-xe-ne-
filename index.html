@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đua Xe Siêu Tốc - Ultimate Edition</title>
+    <title>Đua Xe Siêu Tốc - Stylized 3D Edition</title>
     <style>
         body {
             margin: 0;
@@ -30,8 +30,8 @@
     </style>
 </head>
 <body>
-    <h2>🏎️ ĐUA XE SIÊU TỐC - ADRENALINE MODE ⚡</h2>
-    <p>Né sát sạt xe khác để nạp đầy <b>Thanh Adrenaline</b> (Slow Motion). Tốc độ tối đa giới hạn ở mức 1.2!</p>
+    <h2>🏎️ ĐUA XE SIÊU TỐC - STYLIZED 3D EDITION 🌟</h2>
+    <p>Né sát sạt xe khác để kích hoạt <b>Adrenaline Slow-Mo</b>. Tốc độ tối đa nâng lên mức 2.0!</p>
     <canvas id="gameCanvas" width="600" height="650"></canvas>
 
     <script>
@@ -53,6 +53,7 @@
         let hasShield = false;
         let isGameOver = false;
         let explosionTimer = 0;
+        let screenShakeTimer = 0;
         let keys = {};
         let roadY = 0;
 
@@ -88,8 +89,8 @@
 
             let isRiskyLane = (x === 85 || x === 460);
             
-            // Giới hạn hệ số tốc độ tối đa của game là 1.2
-            let speedBoost = Math.min(1.2, 1 + Math.floor(score / 100) * 0.1);
+            // Tốc độ tối đa của game được nâng lên 2.0
+            let speedBoost = Math.min(2.0, 1 + Math.floor(score / 100) * 0.1);
 
             obstacles.push({
                 x: x,
@@ -124,10 +125,12 @@
                 return;
             }
 
+            if (screenShakeTimer > 0) screenShakeTimer--;
+
             let roadType = getRoadType();
             let timeMultiplier = isSlowMo ? 0.4 : 1;
             
-            let speedBoost = Math.min(1.2, 1 + Math.floor(score / 100) * 0.1);
+            let speedBoost = Math.min(2.0, 1 + Math.floor(score / 100) * 0.1);
             let roadSpeed = 4 * speedBoost * timeMultiplier;
 
             roadY = (roadY + roadSpeed) % 40;
@@ -228,6 +231,7 @@
                 obstacles.shift();
             } else {
                 combo = 0;
+                screenShakeTimer = 20;
                 triggerGameOver();
             }
         }
@@ -248,59 +252,109 @@
             }
         }
 
-        function drawCar(x, y, w, h, color, type, scaleX = 1, scaleY = 1, angle = 0) {
+        function drawStylized3DCar(x, y, w, h, color, type, scaleX = 1, scaleY = 1, angle = 0) {
             ctx.save();
             ctx.translate(x + w/2, y + h/2);
             ctx.rotate(angle);
             ctx.scale(scaleX, scaleY);
             ctx.translate(-(x + w/2), -(y + h/2));
 
-            ctx.fillStyle = color;
+            ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
             ctx.beginPath();
-            ctx.roundRect(x, y, w, h, type === "bus" ? 8 : 12);
+            ctx.ellipse(x + w/2, y + h + 4, w/2 + 4, 8, 0, 0, Math.PI * 2);
             ctx.fill();
-            ctx.strokeStyle = "#000";
-            ctx.lineWidth = 2;
+
+            let grad = ctx.createLinearGradient(x, y, x, y + h);
+            grad.addColorStop(0, lightenColor(color, 30));
+            grad.addColorStop(0.5, color);
+            grad.addColorStop(1, darkenColor(color, 40));
+
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.roundRect(x, y, w, h, type === "bus" ? 8 : 14);
+            ctx.fill();
+
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+            ctx.lineWidth = 2.5;
             ctx.stroke();
 
+            ctx.fillStyle = "#0f172a";
+            ctx.beginPath();
             if (type === "bus") {
-                ctx.fillStyle = "#111";
                 for (let yy = y + 15; yy < y + h - 20; yy += 25) {
-                    ctx.fillRect(x + 6, yy, w - 12, 16);
+                    ctx.roundRect(x + 6, yy, w - 12, 16, 4);
                 }
             } else if (type === "suv" || type === "van") {
-                ctx.fillStyle = "#111";
-                ctx.fillRect(x + 6, y + 18, w - 12, 26);
-                ctx.fillRect(x + 8, y + h - 30, w - 16, 18);
+                ctx.roundRect(x + 6, y + 16, w - 12, 28, 6);
+                ctx.roundRect(x + 8, y + h - 32, w - 16, 18, 5);
             } else {
-                ctx.fillStyle = "#111";
-                ctx.fillRect(x + 7, y + 18, w - 14, 20);
-                ctx.fillRect(x + 8, y + h - 28, w - 16, 14);
+                ctx.roundRect(x + 7, y + 18, w - 14, 22, 6);
+                ctx.roundRect(x + 8, y + h - 28, w - 16, 14, 4);
             }
+            ctx.fill();
 
-            ctx.fillStyle = "#111";
-            ctx.fillRect(x - 5, y + 12, 6, 20);
-            ctx.fillRect(x + w - 1, y + 12, 6, 20);
-            ctx.fillRect(x - 5, y + h - 30, 6, 20);
-            ctx.fillRect(x + w - 1, y + h - 30, 6, 20);
+            ctx.fillStyle = "#090d16";
+            ctx.strokeStyle = "#475569";
+            ctx.lineWidth = 2;
+            let wheels = [
+                {wx: x - 6, wy: y + 12}, {wx: x + w - 2, wy: y + 12},
+                {wx: x - 6, wy: y + h - 30}, {wx: x + w - 2, wy: y + h - 30}
+            ];
+            wheels.forEach(wL => {
+                ctx.beginPath();
+                ctx.roundRect(wL.wx, wL.wy, 8, 22, 3);
+                ctx.fill();
+                ctx.stroke();
+            });
 
-            ctx.fillStyle = "#fff700";
-            ctx.fillRect(x + 4, y + 2, 8, 4);
-            ctx.fillRect(x + w - 12, y + 2, 8, 4);
+            ctx.fillStyle = "#facc15";
+            ctx.shadowColor = "#facc15";
+            ctx.shadowBlur = 10;
+            ctx.fillRect(x + 4, y + 2, 8, 5);
+            ctx.fillRect(x + w - 12, y + 2, 8, 5);
+            ctx.shadowBlur = 0;
 
             ctx.restore();
         }
 
+        function lightenColor(col, percent) {
+            let num = parseInt(col.replace("#",""), 16), amt = Math.round(2.55 * percent);
+            let R = (num >> 16) + amt, G = (num >> 8 & 0x00FF) + amt, B = (num & 0x0000FF) + amt;
+            return "#" + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 + (G<255?G<1?0:G:255)*0x100 + (B<255?B<1?0:B:255)).toString(16).slice(1);
+        }
+        function darkenColor(col, percent) {
+            let num = parseInt(col.replace("#",""), 16), amt = Math.round(2.55 * percent);
+            let R = (num >> 16) - amt, G = (num >> 8 & 0x00FF) - amt, B = (num & 0x0000FF) - amt;
+            return "#" + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 + (G<255?G<1?0:G:255)*0x100 + (B<255?B<1?0:B:255)).toString(16).slice(1);
+        }
+
         function drawTree(x, y) {
+            ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+            ctx.beginPath();
+            ctx.ellipse(x + 15, y + 55, 14, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+
             ctx.fillStyle = "#8B5A2B";
             ctx.fillRect(x + 10, y + 30, 10, 25);
-            ctx.fillStyle = "#228B22";
+            
+            ctx.fillStyle = "#16a34a";
             ctx.beginPath();
-            ctx.arc(x + 15, y + 25, 18, 0, Math.PI * 2);
+            ctx.arc(x + 15, y + 22, 18, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#22c55e";
+            ctx.beginPath();
+            ctx.arc(x + 15, y + 18, 12, 0, Math.PI * 2);
             ctx.fill();
         }
 
         function draw() {
+            ctx.save();
+            if (screenShakeTimer > 0) {
+                let shakeX = (Math.random() - 0.5) * 8;
+                let shakeY = (Math.random() - 0.5) * 8;
+                ctx.translate(shakeX, shakeY);
+            }
+
             let roadType = getRoadType();
 
             if (roadType === "night") ctx.fillStyle = "#090d16";
@@ -323,7 +377,7 @@
             ctx.strokeStyle = roadType === "ice" ? "#64748b" : "#fff";
             ctx.lineWidth = 4;
             ctx.setLineDash([25, 15]);
-            let speedBoost = Math.min(1.2, 1 + Math.floor(score / 100) * 0.1);
+            let speedBoost = Math.min(2.0, 1 + Math.floor(score / 100) * 0.1);
             let roadSpeed = 4 * speedBoost;
             ctx.lineDashOffset = -roadY;
             ctx.beginPath();
@@ -335,7 +389,7 @@
 
             trees.forEach(tree => { drawTree(5, tree.y); drawTree(canvas.width - 35, tree.y); });
 
-            drawCar(car.x, car.y, car.w, car.h, "#00e5ff", "supercar", car.scaleX, car.scaleY, car.angle);
+            drawStylized3DCar(car.x, car.y, car.w, car.h, "#00e5ff", "supercar", car.scaleX, car.scaleY, car.angle);
             if (hasShield) {
                 ctx.strokeStyle = "#00ffcc";
                 ctx.lineWidth = 3;
@@ -361,7 +415,7 @@
                 ctx.globalAlpha = 1;
             });
 
-            obstacles.forEach(obs => { drawCar(obs.x, obs.y, obs.w, obs.h, obs.color, obs.type); });
+            obstacles.forEach(obs => { drawStylized3DCar(obs.x, obs.y, obs.w, obs.h, obs.color, obs.type); });
 
             floatingTexts.forEach(ft => {
                 ctx.fillStyle = ft.color;
@@ -413,6 +467,8 @@
                 ctx.fillText("Nhấn SPACE để chơi lại", canvas.width / 2, 340);
                 ctx.textAlign = "left";
             }
+
+            ctx.restore();
         }
 
         function restartGame() {
@@ -420,7 +476,7 @@
             car.scaleX = 1; car.scaleY = 1; car.angle = 0;
             obstacles = []; shields = []; particles = []; floatingTexts = [];
             score = 0; combo = 0; adrenaline = 0; hasShield = false;
-            isSlowMo = false; slowMoTimer = 0;
+            isSlowMo = false; slowMoTimer = 0; screenShakeTimer = 0;
             isGameOver = false; explosionTimer = 0;
         }
 

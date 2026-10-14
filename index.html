@@ -46,11 +46,11 @@
 </head>
 <body>
     <h2>🏎️ ĐUA XE SIÊU TỐC - TIKI TIKI EDITION ⚡</h2>
-    <p>Né sát sạt xe khác để nạp Adrenaline. Nhạc TIKI TIKI phát xuyên suốt trò chơi!</p>
+    <p>Né sát sạt xe khác để nạp Adrenaline. Nhạc tự động lặp lại liên tục!</p>
     <canvas id="gameCanvas" width="600" height="650"></canvas>
     <button id="musicToggleBtn" onclick="toggleMusic()">🔊 Bật/Tắt Nhạc Tiki Tiki</button>
 
-    <!-- Thẻ Audio trỏ đến file nhạc tikitiki.mp3 đã tải lên GitHub -->
+    <!-- Thêm thuộc tính loop để âm thanh tự động lặp lại khi kết thúc -->
     <audio id="bgMusic" loop>
         <source src="tikitiki.mp3" type="audio/mp3">
     </audio>
@@ -60,10 +60,15 @@
         const ctx = canvas.getContext("2d");
         const bgMusic = document.getElementById("bgMusic");
 
+        // Đảm bảo dự phòng tự lặp lại bằng JS nếu trình duyệt chặn thuộc tính loop của thẻ audio
+        bgMusic.addEventListener('ended', function() {
+            this.currentTime = 0;
+            this.play();
+        }, false);
+
         let gameStarted = false;
         let isMusicPlaying = false;
 
-        // Hàm bật/tắt nhạc nền
         function toggleMusic() {
             if (bgMusic.paused) {
                 bgMusic.volume = 0.7;
@@ -101,7 +106,7 @@
         let roadY = 0;
 
         let roadEventTimer = 0;
-        let currentRoadEvent = "normal"; // normal, split, construction, narrow
+        let currentRoadEvent = "normal";
         let roadEventDuration = 0;
 
         const carColors = ["#ff3366", "#ff9900", "#33cc33", "#9933ff", "#ffff00", "#00bcd4", "#ff4757", "#2ed573"];
@@ -110,7 +115,7 @@
         window.addEventListener("keydown", (e) => {
             if (!gameStarted) {
                 gameStarted = true;
-                toggleMusic(); // Tự động bật nhạc Tiki Tiki khi bấm phím bắt đầu game lần đầu
+                toggleMusic();
             }
             keys[e.key] = true;
             if (isGameOver && e.code === "Space" && explosionTimer <= 0) restartGame();
@@ -121,7 +126,7 @@
         window.addEventListener("click", () => {
             if (!gameStarted) {
                 gameStarted = true;
-                toggleMusic(); // Tự động bật nhạc Tiki Tiki khi click chuột bắt đầu game lần đầu
+                toggleMusic();
             }
         });
 
@@ -229,7 +234,7 @@
 
             if (adrenaline >= 100 && !isSlowMo) {
                 isSlowMo = true;
-                slowMoTimer = 180; // 3 giây
+                slowMoTimer = 180;
                 adrenaline = 0; 
                 addFloatingText("⚡ SLOW-MO ACTIVE!", canvas.width/2 - 110, 180, "#00ffcc");
             }
